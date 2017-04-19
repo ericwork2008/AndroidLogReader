@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<filters showOnlyFilteredLines="true">
+<group name="Test1">
+<filter bgColor="#ffffff" case_sensitive="false" enabled="false" ftColor="#0" text="Root" type="matches_text"/>
+</group>
+<filter bgColor="#ffffff" case_sensitive="false" enabled="false" ftColor="#0" text="Call" type="matches_text"/>
+</filters>

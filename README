@@ -1,0 +1,39 @@
+When I analysis Android adb log, I need a tool which can highlight or filter to show checkpoint
+text. The tools is created for this purpose.
+
+1) All the filter can be defined by regular expression
+2) Filter can orginazied by Group
+3) You can add plugins which can add extra hint text for the log.
+
+In the development, I get more idea on the java programing in the following website, great thanks for the owner.
+Some code is referenced to them.
+1)http://stackoverflow.com/questions/14096725/jtree-set-custom-open-closed-icons-for-individual-groups
+2)https://github.com/santhosh-tekuri/MyBlog/tree/master/CheckTree/src/santhosh
+3)http://www.java2s.com/Tutorial/Java/0240__Swing/ChangingandRemovingtheDefaultIconsinaJTreeComponent.htm
+4)http://www.javaworld.com/article/2077601/learn-java/java-tip-97--add-drag-and-drop-to-your-jtrees.html
+5)http://blog.christoffer.me/drag-and-dropping-files-to-a-java-desktop-application/
+6)http://alvinalexander.com/blog/post/jfc-swing/java-handle-drag-drop-events-mac-osx-dock-application-icon
+
+
+It build on java version "1.7.0_79"
+
+
+
+
+$License
+
+This project contains the source code of http://jroller.com/santhosh
+
+Licensing Information
+=============================
+Originally, this code was released under the LGPL from above blog.
+Now this code may be used under the terms of either the
+ * GNU Lesser General Public License (LGPL) 2.1
+   http://www.gnu.org/licenses/lgpl-2.1.html
+
+or the
+
+ * Apache License, Version 2.0
+   http://www.apache.org/licenses/LICENSE-2.0
+
+you may choose which license to receive the code under.
