@@ -1,0 +1,12 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="AndroidLogReader:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/AndroidLogReader_jar</output-path>
+    <root id="archive" name="AndroidLogReader.jar">
+      <element id="module-output" name="Common" />
+      <element id="module-output" name="LogViewerApp" />
+      <element id="directory" name="META-INF">
+        <element id="file-copy" path="$PROJECT_DIR$/META-INF/MANIFEST.MF" />
+      </element>
+    </root>
+  </artifact>
+</component>
