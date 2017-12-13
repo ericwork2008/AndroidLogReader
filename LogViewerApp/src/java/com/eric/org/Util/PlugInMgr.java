@@ -27,7 +27,7 @@ import java.net.URLClassLoader;
 import java.util.Vector;
 import java.util.jar.JarInputStream;
 import java.util.jar.Manifest;
-
+ 
 public class PlugInMgr {
     private static final String EXTERNAL_PLUGINS_ALT_DIR_NAME = "external";
     private static final String PRIVATE_DIR_NAME = ".LogViewer";

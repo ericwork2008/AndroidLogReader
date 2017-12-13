@@ -37,7 +37,7 @@ public class FilterConfigTreeModel extends DefaultTreeModel {
     }
 
     public void reCreateTreeNodes() {
-        FilterConfigNode root = (FilterConfigNode)this.getRoot();
+        FilterConfigNode root = FilterTreeManager.getInstance().getOriginalRoot();
         root.removeAllChildren();
 
         mTreeSelectionModel.clearSelection();
@@ -45,6 +45,7 @@ public class FilterConfigTreeModel extends DefaultTreeModel {
             addChildNode(ci,root);
         }
 
+        this.setRoot(root);
         this.reload();
     }
     public void insertChildNode(ConfigInfo configIf, FilterConfigNode parentNode, int index) {
@@ -63,8 +64,8 @@ public class FilterConfigTreeModel extends DefaultTreeModel {
 
         if(configIf.enabled)
             mTreeSelectionModel.addSelectionPath(getPath(tmp));
-        else
-            mTreeSelectionModel.removeSelectionPath(getPath(tmp));
+//        else //Only added it into the selection Model. We haven't remove logic
+//            mTreeSelectionModel.removeSelectionPath(getPath(tmp));
     }
 
     //Add a node of configIf under parentNode
@@ -84,8 +85,8 @@ public class FilterConfigTreeModel extends DefaultTreeModel {
 
         if(configIf.enabled)
             mTreeSelectionModel.addSelectionPath(getPath(tmp));
-        else
-            mTreeSelectionModel.removeSelectionPath(getPath(tmp));
+//        else
+//            mTreeSelectionModel.removeSelectionPath(getPath(tmp));
 
     }
 

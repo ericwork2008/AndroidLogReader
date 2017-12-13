@@ -39,6 +39,8 @@ class FilterConfigDlg extends JDialog {
     public FilterConfigDlg(String group) {
         JLabel label = new JLabel("Filter Text:");
         textField = new JTextArea();
+        Font font = new Font("Arial", Font.PLAIN, 20    );
+        textField.setFont(font);
         caseCheckBox = new JCheckBox("Match Case");
         enableCheckBox = new JCheckBox("Enable");
 
@@ -106,7 +108,7 @@ class FilterConfigDlg extends JDialog {
         setTitle("FilterConfigDlg");
         setPreferredSize(this.getParent().getPreferredSize());
 
-        setMinimumSize(new Dimension(550,150));
+        setMinimumSize(new Dimension(700,200));
         pack();
 
         Toolkit toolkit = getToolkit();

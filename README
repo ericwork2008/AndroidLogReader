@@ -13,6 +13,7 @@ Some code is referenced to them.
 4)http://www.javaworld.com/article/2077601/learn-java/java-tip-97--add-drag-and-drop-to-your-jtrees.html
 5)http://blog.christoffer.me/drag-and-dropping-files-to-a-java-desktop-application/
 6)http://alvinalexander.com/blog/post/jfc-swing/java-handle-drag-drop-events-mac-osx-dock-application-icon
+7)http://blue-walrus.com/2011/03/swing-filtered-tree-just-like-in-eclipse/
 
 
 It build on java version "1.7.0_79"

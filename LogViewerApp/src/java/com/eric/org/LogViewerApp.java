@@ -16,9 +16,9 @@
 
 package com.eric.org;
 
-import com.apple.eawt.AppEvent.OpenFilesEvent;
 import com.apple.eawt.Application;
 import com.apple.eawt.ApplicationAdapter;
+import com.apple.eawt.ApplicationEvent;
 import com.eric.org.config.FilterConfigMgr;
 
 import javax.swing.*;
@@ -38,7 +38,7 @@ class LogViewerApp extends JFrame {
 
     private com.eric.org.LogTableMgr logTableMgr;
 
-    private com.eric.org.FilterTreeManager filterTreeManager;
+    private com.eric.org.FilterTreeManager filterTreeManager=FilterTreeManager.getInstance();
 
 
     private LogViewerApp() {
@@ -129,22 +129,22 @@ class LogViewerApp extends JFrame {
         JMenuBar menubar = createMenuBar();
         setJMenuBar(menubar);
 
-        toolbar = createToolBar();
-        add(toolbar, BorderLayout.NORTH);
-        toolbar.setVisible(false);
+//        toolbar = createToolBar();
+//        add(toolbar, BorderLayout.NORTH);
+//        toolbar.setVisible(false);
 
+        //Log View
         logTableMgr = new com.eric.org.LogTableMgr();
         JScrollPane logViewPanel = logTableMgr.createLogView();
+
+        //Filter Panel
+        JComponent filterPanel = filterTreeManager.createFilterPanel();
 
         // Create the drag and drop listener
         FileDragDropListener fileDragDropListener = new FileDragDropListener(logTableMgr);
 
         // Connect the label with a drag and drop listener
         new DropTarget(logViewPanel, fileDragDropListener);
-
-        //Filter Panel
-        filterTreeManager = new com.eric.org.FilterTreeManager();
-        JComponent filterPanel = filterTreeManager.createFilterPanel();
 
         //Attach logTableMgr then filter tree can update log model data
         filterTreeManager.attachLogTable(logTableMgr);
@@ -161,10 +161,10 @@ class LogViewerApp extends JFrame {
         filterPanel.setMinimumSize(minimumSize);
 
         add(splitPane, BorderLayout.CENTER);
-
-        statusbar = new JLabel("Ready");
-        statusbar.setBorder(BorderFactory.createEtchedBorder());
-        add(statusbar, BorderLayout.SOUTH);
+//
+//        statusbar = new JLabel("Ready");
+//        statusbar.setBorder(BorderFactory.createEtchedBorder());
+//        add(statusbar, BorderLayout.SOUTH);
 
         pack();
 
@@ -242,26 +242,26 @@ class LogViewerApp extends JFrame {
         //====== View =====
         JMenu viewMenu = new JMenu("View");
 
-        JCheckBoxMenuItem sbarMi = new JCheckBoxMenuItem("Show statubar");
-        sbarMi.setMnemonic(KeyEvent.VK_S);
-        sbarMi.setDisplayedMnemonicIndex(5);
-        sbarMi.setSelected(true);
-
-        sbarMi.addItemListener(new ItemListener() {
-
-            @Override
-            public void itemStateChanged(ItemEvent e) {
-
-                if (e.getStateChange() == ItemEvent.SELECTED) {
-                    statusbar.setVisible(true);
-                } else {
-                    statusbar.setVisible(false);
-                }
-
-            }
-
-        });
-        viewMenu.add(sbarMi);
+//        JCheckBoxMenuItem sbarMi = new JCheckBoxMenuItem("Show statubar");
+//        sbarMi.setMnemonic(KeyEvent.VK_S);
+//        sbarMi.setDisplayedMnemonicIndex(5);
+//        sbarMi.setSelected(true);
+//
+//        sbarMi.addItemListener(new ItemListener() {
+//
+//            @Override
+//            public void itemStateChanged(ItemEvent e) {
+//
+//                if (e.getStateChange() == ItemEvent.SELECTED) {
+//                    statusbar.setVisible(true);
+//                } else {
+//                    statusbar.setVisible(false);
+//                }
+//
+//            }
+//
+//        });
+//        viewMenu.add(sbarMi);
 
         //====== Filter =====
         JMenu toolsMenu = new JMenu("Filter");
@@ -481,9 +481,9 @@ class LogViewerApp extends JFrame {
 
     // our "callback" method. this method is called by the OpenFileHandlerImp
     // when a "handleOpenFile" event is received.
-    private void handleOpenFileEvent(OpenFilesEvent e) {
-        java.io.File[] files = (File[]) e.getFiles().toArray();
-        File file = new File(files[0].getAbsolutePath());
+    private void handleOpenFileEvent(ApplicationEvent e) {
+//        java.io.File[] files = (File[]) e.getFilename();
+        File file = new File(e.getFilename());
         logTableMgr.loadLogFile(file, false);
     }
 
@@ -499,8 +499,8 @@ class LogViewerApp extends JFrame {
             this.handler = handler;
         }
 
-        public void handleOpenFile(OpenFilesEvent openFilesEvent) {
-            handler.handleOpenFileEvent(openFilesEvent);
+        public void handleOpenFile(ApplicationEvent var1){
+            handler.handleOpenFileEvent(var1);
         }
     }
 
@@ -521,22 +521,21 @@ class LogViewerApp extends JFrame {
         String osName = System.getProperty("os.name").toLowerCase();
         boolean isMacOs = osName.startsWith("mac os x");
         if (isMacOs) {
-            try {
-                System.setProperty("apple.laf.useScreenMenuBar", "true");
-                System.setProperty("com.apple.mrj.application.apple.menu.about.name", "LogViewer");
-                System.setProperty("apple.awt.application.name", "LogViewer");
-                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
-            } catch (InstantiationException e) {
-                e.printStackTrace();
-            } catch (IllegalAccessException e) {
-                e.printStackTrace();
-            } catch (UnsupportedLookAndFeelException e) {
-                e.printStackTrace();
-            }
+            System.setProperty("apple.laf.useScreenMenuBar", "true");
+            System.setProperty("com.apple.mrj.application.apple.menu.about.name", "LogViewer");
+            System.setProperty("apple.awt.application.name", "LogViewer");
         }
-
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        } catch (InstantiationException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (UnsupportedLookAndFeelException e) {
+            e.printStackTrace();
+        }
         LogViewerApp simple = new LogViewerApp();
 
         simple.setVisible(true);

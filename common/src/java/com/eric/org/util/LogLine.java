@@ -28,7 +28,7 @@ public class LogLine {
         msg = line;
         mHidden = false;
     }
-    private LogLine(LogLine orig) {
+    protected LogLine(LogLine orig) {
         line = orig.line;
         msg = orig.msg;
         mHidden = orig.mHidden;

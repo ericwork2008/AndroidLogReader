@@ -72,7 +72,7 @@ public class CheckTreeSelectionModel extends DefaultTreeSelectionModel{
 
     @SuppressWarnings("unchecked")
     public void addSelectionPaths(TreePath[] paths){
-        System.out.println("addSelectionPaths size:"+ paths.length);
+        System.out.println("addSelectionPaths :"+paths+" size="+ paths.length);
         if(!dig){
             super.addSelectionPaths(paths);
             return;

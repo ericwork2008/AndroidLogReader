@@ -21,7 +21,7 @@ import java.util.List;
 
 
 public class LogFilterGrp {
-    private List<LogFilterItem> mdefaultFilterTable = new ArrayList<>();
+    protected List<LogFilterItem> mdefaultFilterTable = new ArrayList<>();
 
     public List<LogFilterItem> getFilterTable() {
         return mdefaultFilterTable;

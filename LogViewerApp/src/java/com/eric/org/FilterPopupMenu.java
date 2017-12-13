@@ -35,11 +35,10 @@ public class FilterPopupMenu {
     private JTree owner;
 
     private TreePath slectedTp = null;
-    private com.eric.org.FilterTreeManager ftm;
+    private com.eric.org.FilterTreeManager ftm = FilterTreeManager.getInstance();
 
-    public FilterPopupMenu(JTree owner, com.eric.org.FilterTreeManager filterTreeManager){
+    public FilterPopupMenu(JTree owner){
         this.owner = owner;
-        this.ftm = filterTreeManager;
 
         popupListener=new MousePopupListener();
 

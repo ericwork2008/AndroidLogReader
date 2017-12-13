@@ -50,8 +50,9 @@ public class LogModel extends AbstractTableModel {
 
     private static int screenLineNo = 0;
     private int mLn = 0;
+    private static int last_find_index = 0; // used to record last find index when merge
 
-
+    //Showing Line Map
     private HashMap<Integer, Integer> showingLineMap = new HashMap<>();
 
     public RenderLines getRenderLines() {
@@ -96,6 +97,15 @@ public class LogModel extends AbstractTableModel {
     public void insertRow(LogLine sl) {
         resetRender();
         //find and insert row
+        last_find_index = findLineBefore(last_find_index,renderLines,sl);
+//        renderLines.insertElementAt();
+    }
+    private int findLineBefore(int last,com.eric.org.Util.RenderLines rls, LogLine sl) {
+        for (int i = last; i<rls.size(); i++) {
+//            LogLine tl = rls.get(i);
+//            if(tl.)
+        }
+        return 0;
     }
     //Original Data Store
     public void addRow(LogLine ll) {
@@ -130,20 +140,23 @@ public class LogModel extends AbstractTableModel {
     /*
      *  Only reset render without clear original log lines
      */
-    private void resetRender() {
-        int rows = getRowCount();
-        if (rows == 0) {
-            return;
-        }
-
+    private synchronized void resetRender() {
         showingLineMap.clear();
+        clearFilterHitCount();
         mLn = 0;
 
-        fireTableRowsDeleted(0, rows - 1);
-
-        owner.getLogTable().firePropertyChange("tablereset",false,false);
-
-        clearFilterHitCount();
+        int rows = getRowCount();
+        System.out.println("rows = "+rows );
+        if (rows<1) {
+            System.out.println("ERROR: rows < 1" );
+        } else {
+            try {
+                fireTableRowsDeleted(0, rows - 1);
+                owner.getLogTable().firePropertyChange("tablereset",false,false);
+            } catch (Exception e) {
+                System.out.println("rows="+rows+" Exception: " + e.getMessage());
+            }
+        }
     }
 
     private void clearFilterHitCount() {
@@ -211,8 +224,14 @@ public class LogModel extends AbstractTableModel {
     }
 
     public com.eric.org.Util.RenderLine getRenderLine(int row) {
-        if (row < showingLineMap.size())
-            return renderLines.get(showingLineMap.get(row));
+        int index = 0;
+        if (row>=0 && row < showingLineMap.size())
+            index = showingLineMap.get(row);
+        if(index <0) {
+            System.out.println("ERROR: index = "+index);
+        } else {
+            return renderLines.get(index);
+        }
         return null;
     }
 

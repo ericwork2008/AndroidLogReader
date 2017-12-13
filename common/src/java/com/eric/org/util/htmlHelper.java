@@ -17,7 +17,7 @@
 package com.eric.org.util;
 
 public class htmlHelper {
-    private final static String head = "<head><style>\n" +
+    public final static String head = "<head><style>\n" +
             "table, th, td {\n" +
             "    border: 1px solid black;\n" +
             "    border-collapse: collapse;\n" +
@@ -30,15 +30,15 @@ public class htmlHelper {
                 "ftColor: black;\n"+
             "}\n"+
             "</style></head>";
-    private final static String htmlHeader = "<html>"+head;
-    private final static String htmlEnd = "</html>";
-    private final static String title = "<tr>\n" +
+    public final static String htmlHeader = "<html>"+head;
+    public final static String htmlEnd = "</html>";
+    public final static String title = "<tr>\n" +
             "    <th align=\"left\">Check Point</th>\n" +
             "    </tr>\n";
-    private final static String tableHeader = "<table id=\"t01\" border=\"1\">";
-    private final static String tableEnd = "</table>";
-    private final static String bodyHeader = "<body>";
-    private final static String bodyEnd = "</body>";
+    public  final static String tableHeader = "<table id=\"t01\" border=\"1\">";
+    public  final static String tableEnd = "</table>";
+    public final static String bodyHeader = "<body>";
+    public  final static String bodyEnd = "</body>";
 
     public static String buildCheckPoint(String checkPoint) {
         String rstStr =  htmlHelper.htmlHeader+htmlHelper.bodyHeader+

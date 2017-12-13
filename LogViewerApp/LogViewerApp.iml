@@ -9,5 +9,6 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="Common" />
+    <orderEntry type="library" name="com.apple:AppleJavaExtensions:Release" level="project" />
   </component>
 </module>

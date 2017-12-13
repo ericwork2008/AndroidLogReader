@@ -24,9 +24,29 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 import java.awt.*;
+import java.awt.event.*;
 
-public class LogTable extends JTable {
+public class LogTable extends JTable implements MouseWheelListener{
     private TableCellRenderer mCheckpointRenderer = new com.eric.org.CheckPointRender();
+
+
+    public void mouseWheelMoved(MouseWheelEvent e) {
+        if (e.isControlDown()) {
+            if (e.getWheelRotation() < 0) {
+                System.out.println("scrolled up");
+                Font currentFont = getFont();
+                final Font bigFont = new Font(currentFont.getName(), currentFont.getStyle(), currentFont.getSize() + 1);
+                setFont(bigFont);
+            } else {
+                System.out.println("scrolled down");
+                Font currentFont = getFont();
+                final Font smallFont = new Font(currentFont.getName(), currentFont.getStyle(), currentFont.getSize() - 1);
+                setFont(smallFont);
+            }
+        }else {
+            getParent().dispatchEvent(e);
+        }
+    }
 
     public LogTable(LogModel model) {
         super(model);
@@ -47,6 +67,8 @@ public class LogTable extends JTable {
 
         setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         addListSelectionListener();
+
+        addMouseWheelListener(this);
     }
 
     public Component prepareRenderer(TableCellRenderer renderer, int row, int column)
@@ -76,6 +98,7 @@ public class LogTable extends JTable {
     }
 
     private int preferredWidth;
+
     public TableCellRenderer getCellRenderer(int row, int column) {
         LogModel model = (LogModel) getModel();
         RenderLine rl = model.getRenderLine(row);
@@ -100,6 +123,12 @@ public class LogTable extends JTable {
 //            preferredWidth = maxWidth;
 //        }
         tableColumn.setPreferredWidth( preferredWidth );
+
+        int height = c.getPreferredSize().height + getIntercellSpacing().height;
+        int rowHeight = getRowHeight();
+        rowHeight = Math.max(rowHeight, height);
+
+        setRowHeight(row, rowHeight);
         return renderer;
     }
 

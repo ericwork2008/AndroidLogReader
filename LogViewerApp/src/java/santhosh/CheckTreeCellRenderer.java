@@ -2,6 +2,7 @@ package santhosh;
 
 import com.eric.org.FilterConfigNode;
 import com.eric.org.FilterTreeListener;
+import com.eric.org.FilterTreeManager;
 import com.eric.org.config.ConfigInfo;
 
 import javax.swing.*;
@@ -25,10 +26,18 @@ public class CheckTreeCellRenderer extends JPanel implements TreeCellRenderer {
 
         setOpaque(false);
         checkBox.setOpaque(false);
+//        checkBox.setBorderPainted(true);
+        checkBox.setBorderPaintedFlat(true);
+//        Border raisedB = BorderFactory.createRaisedBevelBorder();
+//        checkBox.setBorder(raisedB);
     }
 
     public Component getTreeCellRendererComponent(JTree tree, Object value, boolean selected, boolean expanded, boolean leaf, int row, boolean hasFocus) {
         Component defaultRenderComp = delegate.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, hasFocus);
+        setFont(tree.getFont());
+        int rowHeight = tree.getRowHeight();
+        rowHeight = Math.max(rowHeight, getPreferredSize().height);
+        tree.setRowHeight(rowHeight);
 
         if (tree.getModel().getRoot() == value) {
             ((DefaultTreeCellRenderer) defaultRenderComp).setIcon(null);
@@ -71,6 +80,18 @@ public class CheckTreeCellRenderer extends JPanel implements TreeCellRenderer {
                 Dimension d = defaultRenderComp.getPreferredSize();
                 defaultRenderComp.setPreferredSize(d);
 
+                String filteredText = FilterTreeManager.getInstance().getFilterFilterText();
+                if ((filteredText!=null)
+                        &&!filteredText.equals("")
+                        && value.toString().startsWith(filteredText)){
+                    Font f = defaultRenderComp.getFont();
+                    f = new Font("Dialog", Font.BOLD, f.getSize());
+                    defaultRenderComp.setFont(f);
+                }else{
+                    Font f = defaultRenderComp.getFont();
+                    f = new Font("Dialog", Font.PLAIN , f.getSize());
+                    defaultRenderComp.setFont(f);
+                }
                 checkBox.setSelected(fc.enabled);
             } else {
                 Icon groupIcon = UIManager.getIcon("FileView.directoryIcon");
