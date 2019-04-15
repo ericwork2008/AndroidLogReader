@@ -23,6 +23,7 @@ import javax.swing.border.BevelBorder;
 import javax.swing.event.PopupMenuEvent;
 import javax.swing.event.PopupMenuListener;
 import javax.swing.tree.TreePath;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
@@ -61,7 +62,20 @@ public class FilterPopupMenu {
             }
 
             if(Objects.equals(actionCommand, "New Group")){
-                String grpName = JOptionPane.showInputDialog(owner, "Enter Group name:");
+                JOptionPane optionPane = new JOptionPane("Input"
+                        , JOptionPane.PLAIN_MESSAGE
+                        , JOptionPane.DEFAULT_OPTION
+                        , null, null, "Please Enter Group name:");
+                optionPane.setWantsInput(true);
+                JDialog dialog = optionPane.createDialog(null, "Input");
+
+                Dimension size = Toolkit.getDefaultToolkit().getScreenSize();
+                dialog.setLocation(size.width/2 ,size.height/2);
+                dialog.setModal(true);
+                dialog.setVisible(true);
+
+//                String grpName = JOptionPane.showInputDialog(owner, "Enter Group name:");
+                String grpName = (String) optionPane.getInputValue();
                 if((grpName!=null) && (!grpName.isEmpty()))
                     ftm.newFilterConfigGrp(new ConfigInfo(grpName),slectedTp);
             }
@@ -78,6 +92,7 @@ public class FilterPopupMenu {
                 if(rst != null)
                     ftm.editFilterConfig(fcd.getFilterConfig(),slectedTp);
             }
+//            ftm.getFilterTreeModel().reload();
         }
     };
     // An inner class to show when popup events occur

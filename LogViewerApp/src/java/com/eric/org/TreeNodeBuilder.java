@@ -20,7 +20,7 @@ public class TreeNodeBuilder {
     }
 
     public DefaultMutableTreeNode prune(DefaultMutableTreeNode root) {
-        removeBadLeaves(root);
+        removeNonTargetLeaves(root);
         return root;
     }
 
@@ -32,19 +32,14 @@ public class TreeNodeBuilder {
             parent.remove(node);
     }
 
-    //DFS to remove the node which doesn't contain the filter text
-    private void removeBadLeaves(DefaultMutableTreeNode node) {
+    //DFS to remove the node which doesn't contain the filter text except root
+    private void removeNonTargetLeaves(DefaultMutableTreeNode node) {
         //Base
         if (node == null)
             return;
 
         ConfigInfo ci = (ConfigInfo) node.getUserObject();
-        if (ci.isGroup()) {
-            if (node.getChildCount() == 0) {
-                removeNode(node);
-                return;
-            }
-        }
+
         //Match the text in group and config filter
         if (ci.isGroup()) {
             if (ci.getName().toLowerCase().contains(textToMatch))
@@ -61,13 +56,13 @@ public class TreeNodeBuilder {
                 DefaultMutableTreeNode leaf;
                 try {
                     leaf = (DefaultMutableTreeNode) node.getChildAt(i);
-                    removeBadLeaves(leaf);
+                    removeNonTargetLeaves(leaf);
                 } catch (NoSuchElementException | NullPointerException e) {
                     return;
                 }
             }
             //If All child clean, we need remove this node
-            if (node.getChildCount() == 0) {
+            if (node.getChildCount() == 0 && !node.isRoot()) {
                 removeNode(node);
                 return;
             }

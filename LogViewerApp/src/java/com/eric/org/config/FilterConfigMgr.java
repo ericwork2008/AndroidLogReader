@@ -49,7 +49,7 @@ public class FilterConfigMgr {
     public static com.eric.org.config.ConfigInfo rootConfigInfo = new com.eric.org.config.ConfigInfo("Filter Root");
 
     public FilterConfigMgr(com.eric.org.FilterConfigTreeModel fm) {
-        com.eric.org.FilterConfigTreeModel fm1 = fm;
+
     }
 
 
@@ -198,7 +198,11 @@ public class FilterConfigMgr {
             System.out.println("saveNode: parent == null");
             return;
         }
-        for (com.eric.org.config.ConfigInfo cn : parent.getChildren()) {
+        List<ConfigInfo> childs = parent.getChildren();
+        if(childs == null)
+            return;
+
+        for (com.eric.org.config.ConfigInfo cn : childs) {
             if(cn.isGroup()){
                 Element group = doc.createElement("group");
 

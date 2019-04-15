@@ -11,8 +11,8 @@ import java.util.StringTokenizer;
  */
 public class TreePathUtil {
     public static String serialize(TreePath treePath) {
-        Object path[] = treePath.getPath();
-        StringBuffer buff = new StringBuffer();
+        Object[] path = treePath.getPath();
+        StringBuilder buff = new StringBuilder();
         for (int i = 0; i < path.length; i++) {
             if (i > 0)
                 buff.append("/");
@@ -42,8 +42,8 @@ public class TreePathUtil {
     }
 
     public static String serialize(TreeSelectionModel selectionModel) {
-        TreePath path[] = selectionModel.getSelectionPaths();
-        StringBuffer buff = new StringBuffer();
+        TreePath[] path = selectionModel.getSelectionPaths();
+        StringBuilder buff = new StringBuilder();
         for (int i = 0; i < path.length; i++) {
             if (i != 0)
                 buff.append(",");

@@ -26,19 +26,23 @@ import javax.swing.table.TableColumn;
 import java.awt.*;
 import java.awt.event.*;
 
+/**
+ * LogTable will show the Log
+ */
 public class LogTable extends JTable implements MouseWheelListener{
     private TableCellRenderer mCheckpointRenderer = new com.eric.org.CheckPointRender();
 
-
+    /**
+     * Ctl + mouse up/down to zoom in/out the LogTable view
+     * @param e
+     */
     public void mouseWheelMoved(MouseWheelEvent e) {
         if (e.isControlDown()) {
             if (e.getWheelRotation() < 0) {
-                System.out.println("scrolled up");
                 Font currentFont = getFont();
                 final Font bigFont = new Font(currentFont.getName(), currentFont.getStyle(), currentFont.getSize() + 1);
                 setFont(bigFont);
             } else {
-                System.out.println("scrolled down");
                 Font currentFont = getFont();
                 final Font smallFont = new Font(currentFont.getName(), currentFont.getStyle(), currentFont.getSize() - 1);
                 setFont(smallFont);
@@ -50,13 +54,14 @@ public class LogTable extends JTable implements MouseWheelListener{
 
     public LogTable(LogModel model) {
         super(model);
+        setTableHeader(null);
         this.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         this.setPreferredScrollableViewportSize(Toolkit.getDefaultToolkit().getScreenSize());
 
         setShowGrid(false);
-//
-//        this.setAutoCreateRowSorter(true);
+
         setFont(new Font("Courier", Font.PLAIN, 14));
+
         //Set Column 0
         TableColumn column = null;
         column = this.getColumnModel().getColumn(0);
@@ -71,20 +76,16 @@ public class LogTable extends JTable implements MouseWheelListener{
         addMouseWheelListener(this);
     }
 
-    public Component prepareRenderer(TableCellRenderer renderer, int row, int column)
-    {
+    public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
         Component c = super.prepareRenderer(renderer, row, column);
 
         //  Alternate row ftColor
-
         if (isRowSelected(row)){
             c.setBackground(Color.BLUE);
             c.setForeground(Color.WHITE);
-        }
-        else {
-
+        } else {
             LogModel model = (LogModel) getModel();
-            RenderLine rl = model.getRenderLine(row);
+            RenderLine rl = model.getLineToBeShown(row);
             if(rl.isFilterShotted()){
                 c.setForeground(Color.decode(rl.getFtColor()));
                 c.setBackground(Color.decode(rl.getBgColor()));
@@ -101,7 +102,7 @@ public class LogTable extends JTable implements MouseWheelListener{
 
     public TableCellRenderer getCellRenderer(int row, int column) {
         LogModel model = (LogModel) getModel();
-        RenderLine rl = model.getRenderLine(row);
+        RenderLine rl = model.getLineToBeShown(row);
 
         TableCellRenderer renderer = null;
         if ((rl != null) && (rl.isParsed())){
@@ -111,17 +112,11 @@ public class LogTable extends JTable implements MouseWheelListener{
         }
 
         TableColumn tableColumn = getColumnModel().getColumn(column);
-//        preferredWidth = tableColumn.getMinWidth();
-//        int maxWidth = tableColumn.getMaxWidth();
 
         Component c = prepareRenderer(renderer, row, column);
         int width = c.getPreferredSize().width + getIntercellSpacing().width;
         preferredWidth = Math.max(preferredWidth, width);
-        //  We've exceeded the maximum width, no need to check other rows
-//
-//        if (preferredWidth >= maxWidth) {
-//            preferredWidth = maxWidth;
-//        }
+
         tableColumn.setPreferredWidth( preferredWidth );
 
         int height = c.getPreferredSize().height + getIntercellSpacing().height;
@@ -132,16 +127,23 @@ public class LogTable extends JTable implements MouseWheelListener{
         return renderer;
     }
 
-    private int getNumberOfVisibleRows() {
+    /**
+     * Return the total rows in the Log view
+     * @return
+     */
+    private int getVisibleRowsInTheView() {
         return (int) (getParent().getSize().getHeight() / getRowHeight());
     }
 
-    private int getDeltaLineInView(){
+    /**
+     * Get the row distance from Top to the selected line
+     * @return
+     */
+    private int getSelectedLineDistanceInView(){
         JViewport viewport = (JViewport)getParent();
         Point p = viewport.getViewPosition();
         int firstRow = rowAtPoint(p);
         int selectedRow = getSelectedRow();
-
         return selectedRow - firstRow;
     }
 
@@ -152,34 +154,32 @@ public class LogTable extends JTable implements MouseWheelListener{
         if (visibleRect.y >= rect1.y) {
             scrollRectToVisible(rect1);
         } else {
-            Rectangle rect2 = getCellRect(rowIndex - delta + getNumberOfVisibleRows(), 0, false);
+            Rectangle rect2 = getCellRect(rowIndex - delta + getVisibleRowsInTheView(), 0, false);
             int width = rect2.y - rect1.y;
             scrollRectToVisible(new Rectangle(rect1.x, rect1.y, rect1.width, rect1.height + width));
         }
     }
-    public boolean getScrollableTracksViewportWidth()
-    {
+
+    public boolean getScrollableTracksViewportWidth() {
         return getPreferredSize().width < getParent().getWidth();
     }
 
     private void addListSelectionListener(){
         //When selection changes, provide user with row numbers for
         //both view and model.
-        this.getSelectionModel().addListSelectionListener(
-                new ListSelectionListener() {
+        this.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
                     @Override
                     public void valueChanged(ListSelectionEvent e) {
                         String selectedData = null;
 
                         int[] selectedRow = getSelectedRows();
-                        int[] selectedColumns = getSelectedColumns();
 
                         if(selectedRow.length>0){
                             LogModel model = (LogModel) getModel();
-                            int orglinenum = model.screenToOriginalNumber(selectedRow[0]);
-                            model.setSelectedOriginalLineNum(orglinenum);
-                            model.setDeltaLineNumber(getDeltaLineInView());
-                            System.out.println("Selected Row, screen row number = " + selectedRow[0]+"; deltaline:" + getDeltaLineInView()+"; Original Row number = " + orglinenum);
+                            int orgLine = model.screenToOriginalNumber(selectedRow[0]);
+                            model.setSelectedOriginalLineNum(orgLine);
+                            model.setDistance(getSelectedLineDistanceInView());
+                            System.out.println("Selected Row, screen row number = " + selectedRow[0]+"; Distance:" + getSelectedLineDistanceInView()+"; Original Row number = " + orgLine);
                         }
                     }
                 }

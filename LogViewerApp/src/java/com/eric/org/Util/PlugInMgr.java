@@ -74,6 +74,7 @@ public class PlugInMgr {
         };
     }
 
+    @SuppressWarnings("ThrowablePrintedToSystemOut")
     private void loadExternalJavaPlugin(File jar) throws Exception {
         try (JarInputStream jis = new JarInputStream(new FileInputStream(jar))) {// Note: printOut will not work here, since a listener is not set yet
             System.out.println("Loading plugins from: " + jar.getAbsolutePath());
@@ -83,7 +84,7 @@ public class PlugInMgr {
                 if (pluginClassName != null) {
                     System.out.println("pluginClassName: " + pluginClassName);
                     try {
-                        URL urls[] = {jar.toURI().toURL()};
+                        URL[] urls = {jar.toURI().toURL()};
                         URLClassLoader cl = new URLClassLoader(urls, getClass().getClassLoader());
                         Class<?> extClass = Class.forName(pluginClassName, true, cl);
                         PlugIn ext = (PlugIn) extClass.newInstance();
@@ -102,7 +103,7 @@ public class PlugInMgr {
         File[] pluginDirs = getPluginDirs();
         for (File pluginDir : pluginDirs) {
             if (pluginDir.exists() && pluginDir.isDirectory()) {
-                String files[] = pluginDir.list();
+                String[] files = pluginDir.list();
                 for (String fn : files) {
                     File f = new File(pluginDir, fn);
                     try {

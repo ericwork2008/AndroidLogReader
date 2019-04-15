@@ -38,18 +38,22 @@ public class ConfigInfo implements Transferable, Serializable {
     final public static DataFlavor INFO_FLAVOR =
             new DataFlavor(ConfigInfo.class, "ConfigInfo Information");
 
-    static DataFlavor flavors[] = {INFO_FLAVOR };
+    static DataFlavor[] flavors = {INFO_FLAVOR};
 
+    //Filter string
     public LogFilterItem filterItem;
+    //Only used by Leaf, group is selected or not depend on all Child selected status (Partial,Selected,UnSelected)
     public boolean enabled;
     public String match_type;
     public String ftColor;
     public String bgColor;
+    //The count of lines which match the filter
     public int hitCount;
 
     private boolean isGroup=true;
-
     private String mName = null; //Group Name
+    public boolean isExpended = false; //record if it is expended in the Jtree
+
     private ConfigInfo mParent = null;
     private List<ConfigInfo> mChildren = null;
 
@@ -163,13 +167,11 @@ public class ConfigInfo implements Transferable, Serializable {
             if(mChildren == null){
                 return null;
             }
-            int cnt = mChildren.size();
             for (ConfigInfo aMChildren : mChildren) {
                 List<ConfigInfo> tmp = aMChildren.getSubActiveFilterConfigList();
                 if (tmp == null) {
                     return rst;
                 }
-                int cnt2 = tmp.size();
                 for (ConfigInfo aTmp : tmp) {
                     rst.add(aTmp);
                 }

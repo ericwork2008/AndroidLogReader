@@ -33,8 +33,9 @@ public class CheckTreeSelectionModel extends DefaultTreeSelectionModel{
 
     // tests whether there is any unselected node in the subtree of given path
     public boolean isPartiallySelected(TreePath path){
-        if(isPathSelected(path, true))
-            return false;
+//      Need check if sub child have uncheck to decide if it is partially selected
+//        if(isPathSelected(path, true))
+//            return false;
         TreePath[] selectionPaths = getSelectionPaths();
         if(selectionPaths==null)
             return false;
@@ -57,7 +58,7 @@ public class CheckTreeSelectionModel extends DefaultTreeSelectionModel{
     }
 
     // is path2 descendant of path1
-    private boolean isDescendant(TreePath path1, TreePath path2){
+    public boolean isDescendant(TreePath path1, TreePath path2){
         return path1.isDescendant(path2);
     }
 

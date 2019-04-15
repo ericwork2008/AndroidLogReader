@@ -14,7 +14,7 @@ public class PreorderEnumeration implements Enumeration {
         this(treeModel, new Object[]{treeModel.getRoot()});
     }
 
-    public PreorderEnumeration(TreeModel treeModel, Object elements[]) {
+    public PreorderEnumeration(TreeModel treeModel, Object[] elements) {
         this.treeModel = treeModel;
         Vector v = new Vector(elements.length);
         for (Object element : elements)

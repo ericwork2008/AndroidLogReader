@@ -44,7 +44,7 @@ public class FilterTreeListener extends MouseAdapter implements
         TreeModelListener, ActionListener,
         TreeSelectionListener,
         DragGestureListener, DropTargetListener,
-        DragSourceListener, MouseWheelListener {
+        DragSourceListener, MouseWheelListener,MouseMotionListener{
     private CheckTreeSelectionModel selectionModel;
     private com.eric.org.FilterConfigTreeModel fcm;
     private com.eric.org.LogTableMgr logTableMgr;
@@ -155,16 +155,15 @@ public class FilterTreeListener extends MouseAdapter implements
         this.logTableMgr.addLogContentChangeListener(logchangeListener);
     }
 
+    //When Log data changed, Filter view need show how many log line matched.
     private com.eric.org.LogTableListener logchangeListener = new com.eric.org.LogTableListener() {
-
         @Override
         public void onContentChanged() {
-//            fcm.reload();
             tree.repaint();
-//            fcm.nodesChanged((TreeNode) fcm.getRoot(),null);
         }
     };
 
+    @SuppressWarnings("ThrowablePrintedToSystemOut")
     @Override
     public void dragGestureRecognized(DragGestureEvent dge) {
         //Get the selected node
@@ -373,9 +372,7 @@ public class FilterTreeListener extends MouseAdapter implements
             fcm.reload(destNode);
             TreePath parentPath = new TreePath(destNode.getPath());
             tree.expandPath(parentPath);
-        } catch (IOException io) {
-            e.rejectDrop();
-        } catch (UnsupportedFlavorException ufe) {
+        } catch (IOException | UnsupportedFlavorException io) {
             e.rejectDrop();
         }
     }
@@ -411,8 +408,8 @@ public class FilterTreeListener extends MouseAdapter implements
             JTree tree = (JTree)support.getComponent();
             int dropRow = tree.getRowForPath(dl.getPath());
             int[] selRows = tree.getSelectionRows();
-            for(int i = 0; i < selRows.length; i++) {
-                if(selRows[i] == dropRow) {
+            for (int selRow : selRows) {
+                if (selRow == dropRow) {
                     return false;
                 }
             }
@@ -430,11 +427,8 @@ public class FilterTreeListener extends MouseAdapter implements
             TreePath path = tree.getPathForRow(selRows[0]);
             DefaultMutableTreeNode firstNode =
                     (DefaultMutableTreeNode)path.getLastPathComponent();
-            if(firstNode.getChildCount() > 0 &&
-                    target.getLevel() < firstNode.getLevel()) {
-                return false;
-            }
-            return true;
+            return firstNode.getChildCount() <= 0 ||
+                    target.getLevel() >= firstNode.getLevel();
         }
 
         private boolean haveCompleteNode(JTree tree) {
@@ -470,9 +464,9 @@ public class FilterTreeListener extends MouseAdapter implements
                 // another for/of the nodes that will be removed in
                 // exportDone after a successful drop.
                 List<DefaultMutableTreeNode> copies =
-                        new ArrayList<DefaultMutableTreeNode>();
+                        new ArrayList<>();
                 List<DefaultMutableTreeNode> toRemove =
-                        new ArrayList<DefaultMutableTreeNode>();
+                        new ArrayList<>();
                 DefaultMutableTreeNode node =
                         (DefaultMutableTreeNode)paths[0].getLastPathComponent();
                 DefaultMutableTreeNode copy = copy(node);
@@ -550,8 +544,8 @@ public class FilterTreeListener extends MouseAdapter implements
                 index = parent.getChildCount();
             }
             // Add data to model.
-            for(int i = 0; i < nodes.length; i++) {
-                model.insertNodeInto(nodes[i], parent, index++);
+            for (DefaultMutableTreeNode node : nodes) {
+                model.insertNodeInto(node, parent, index++);
             }
             return true;
         }
@@ -594,33 +588,57 @@ public class FilterTreeListener extends MouseAdapter implements
 //        renderer.checkBoxCustomer = checkBoxCustomer;
     }
 
-    private void toggleSelection(TreePath path) {
-        if (path == null)
+    private void toggleSelection(TreePath treePath) {
+        if (treePath == null)
             return;
 
-        boolean selected = selectionModel.isPathSelected(path, selectionModel.isDigged());
+        List<TreePath> pathToAdded = new ArrayList<>();
+        List<TreePath> pathToRemoved = new ArrayList<>();
 
-        if (selectionModel.isDigged() && !selected && selectionModel.isPartiallySelected(path))
-            selected = !selected;
-        selectionModel.removeTreeSelectionListener(this);
-        if (selected) {
-            selectionModel.removeSelectionPath(path);
+        FilterConfigNode node = (FilterConfigNode)treePath.getLastPathComponent();
+        System.out.println("Toggle " + ((ConfigInfo)node.getUserObject()).toString());
+        if (node.isAllLeafSelected()) {
+            pathToRemoved.add(treePath);
         } else {
-            selectionModel.addSelectionPath(path);
+            if (node.isPartialLeafSelected()) {
+                TreePath[] selectionPaths = selectionModel.getSelectionPaths();
+                if (selectionPaths != null) {
+                    for (TreePath selectionPath : selectionPaths) {
+                        //Remove the descendants
+                        if (selectionModel.isDescendant(treePath,selectionPath)) {
+                            pathToRemoved.add(selectionPath);
+                        }
+                    }
+                }
+            }else{
+                pathToAdded.add(treePath); //After introduce the filter, the path should be rebuild according to child
+            }
         }
-        selectionModel.addTreeSelectionListener(this);
-        treeChanged();
-        //Clear filter checked list
-        FilterConfigMgr.disableAllFilter();
-        System.out.println("Filter list size after clear " + FilterConfigMgr.getActiveFilterList().size());
+        selectionModel.removeTreeSelectionListener(this);
+        try {
+            if (pathToAdded.size() > 0) {
+                selectionModel.addSelectionPaths(pathToAdded.toArray(new TreePath[pathToAdded.size()]));
+            }
+            if (pathToRemoved.size() > 0) {
+                selectionModel.removeSelectionPaths(pathToRemoved.toArray(new TreePath[pathToRemoved.size()]));
+            }
+        } finally {
+            selectionModel.addTreeSelectionListener(this);
+            tree.treeDidChange();
+        }
+        //Only update the path it need update
+        // Remove all unselect path
+        for(TreePath rmPath : pathToRemoved) {
+            FilterConfigNode tn = null;
+            tn = (FilterConfigNode)rmPath.getLastPathComponent();
+            tn.unCheckSelfandAllChild();
+        }
         ArrayList<TreePath> selectionPaths = getAllCheckedPaths();
-        System.out.println("Selection size:" + selectionPaths.size());
         if (selectionPaths != null) {
             for (TreePath selectionPath : selectionPaths) {
                 FilterConfigNode tn = null;
                 tn = (FilterConfigNode) selectionPath.getLastPathComponent();
-                ConfigInfo cn = (ConfigInfo) tn.getUserObject();
-                cn.enabled = true;
+                tn.selectAllLeaf();
             }
             System.out.println("Filter list size after rebuild " + FilterConfigMgr.getActiveFilterList().size());
 
@@ -651,13 +669,19 @@ public class FilterTreeListener extends MouseAdapter implements
         }
     }
 
+    @Override
+    public void mouseReleased(MouseEvent e) {
+        super.mouseReleased(e);
+        tree.setDragEnabled(false);
+    }
+
     //TreeSelectionListener
     private com.eric.org.FilterConfigNode getSelectedNode() {
         try {
             SelectedNode = (com.eric.org.FilterConfigNode) tree.getSelectionPath().getLastPathComponent();
             return SelectedNode;
         } catch (Exception e){
-            System.out.println("getSelectedNode, Error" + e);
+            System.out.println("getSelectedNode, Error: " + e);
         }
 
         return null;
@@ -681,7 +705,7 @@ public class FilterTreeListener extends MouseAdapter implements
             result.add(path.pathByAddingChild(model.getChild(item, i)));
     }
 
-    private ArrayList getDescendants(TreePath paths[], TreeModel model) {
+    private ArrayList getDescendants(TreePath[] paths, TreeModel model) {
         ArrayList result = new ArrayList();
         Stack pending = new Stack();
         pending.addAll(Arrays.asList(paths));
@@ -725,6 +749,18 @@ public class FilterTreeListener extends MouseAdapter implements
         }else {
             this.tree.getParent().dispatchEvent(e);
         }
+    }
+
+    @Override
+    public void mouseDragged(MouseEvent e) {
+        super.mouseDragged(e);
+        tree.setDragEnabled(true);
+        tree.setDropMode(DropMode.ON_OR_INSERT);
+    }
+
+    @Override
+    public void mouseMoved(MouseEvent e) {
+        super.mouseMoved(e);
     }
 //ActionListener
 

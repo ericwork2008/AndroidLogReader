@@ -2,7 +2,7 @@
   <library name="com.apple:AppleJavaExtensions:Release" type="repository">
     <properties maven-id="com.apple:AppleJavaExtensions:RELEASE" />
     <CLASSES>
-      <root url="jar://$PROJECT_DIR$/libs/AppleJavaExtensions-1.4.jar!/" />
+      <root url="jar://$MAVEN_REPOSITORY$/com/apple/AppleJavaExtensions/1.4/AppleJavaExtensions-1.4.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />

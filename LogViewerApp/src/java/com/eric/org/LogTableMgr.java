@@ -20,34 +20,34 @@ import com.eric.org.Util.PlugInMgr;
 import com.eric.org.util.LogLine;
 
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.TableModel;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
+import java.io.*;
 import java.util.List;
+import java.util.prefs.Preferences;
 
+/**
+ * LogTableMgr used to coordinate LogTable and LogModel to show the log in the following processes:
+ *  1) Load Log
+ *  2) Merge Log
+ * @see LogTable
+ * @see LogModel
+ */
 public class LogTableMgr {
-    private LogModel lm;
     private JDialog waitingDlg;
+
+    public LogTableListener mLogchangeListener = null;
+    private LogModel lm;
+    private LogTable lt;
 
     public LogTable getLogTable() {
         return lt;
     }
-
-    public com.eric.org.LogTableListener logchangeListener = null;
-    private LogTable lt;
-
-    private PlugInMgr pluginMgr = new PlugInMgr();
-
     private LogModel getLogModel() {
         return lm;
-    }
-
-    public ListSelectionModel getSelectionModel() {
-        return lt.getSelectionModel();
     }
 
     public JScrollPane createLogView() {
@@ -55,47 +55,74 @@ public class LogTableMgr {
         lm = new LogModel(this);
         lt = new LogTable(lm);
 
-        JScrollPane logViewPanel = new JScrollPane(lt, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        JScrollPane logViewPanel = new JScrollPane(lt);
 
         return logViewPanel;
     }
 
+    /**
+     * Apply Filter to log
+     */
     public void applyFilter() {
         lm.applyFilter();
     }
 
+    /**
+     * Show and hide the log with filter
+     */
     public void tangleFilter() {
         lm.hideShowFilter();
     }
 
-    public void mergeLogFile(File otherfile) {
-        loadLogFile(otherfile, true);
+    public void mergeLogFile(File[] files) {
+        JFrame parentFrame = new JFrame();
+        Preferences prefs = Preferences.userNodeForPackage(
+                LogViewerApp.class).node(
+                LogViewerApp.class.getName().replaceFirst(".*\\.", ""));
+
+        String logDirStr = prefs.get("logDir", null);
+        if (logDirStr == null)
+            logDirStr = "./";
+
+        File logDir = new File(logDirStr);
+
+        JFileChooser fileChooser = new JFileChooser();
+        if (logDir.isDirectory() && logDir.canRead()) {
+            fileChooser.setCurrentDirectory(logDir);
+        }
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("TEXT FILES", "txt", "text");
+        fileChooser.setFileFilter(filter);
+        fileChooser.setDialogTitle("Specify a file to save");
+
+        fileChooser.setSelectedFile(new File("merged.txt"));
+        int userSelection = fileChooser.showSaveDialog(parentFrame);
+
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            File fileToSave = fileChooser.getSelectedFile();
+            System.out.println("Save as file: " + fileToSave.getAbsolutePath());
+            String filePath = fileChooser.getCurrentDirectory().getAbsolutePath();
+
+            prefs.put("logDir", filePath);
+            MergeLogFileWorker mw = new MergeLogFileWorker(files, fileToSave, lm);
+            mw.execute();
+        }
     }
 
-    //Param b = ture means the file need merged to the present
-    public void loadLogFile(File file, boolean b) {
+    public void loadLogFile(File file) {
+        needSaveCaptureLog = false;
+
         waitingDlg = new JDialog();
+        waitingDlg.setTitle("Loading...");
 
-        JPanel panel = new JPanel();
+        JProgressBar progressBar;
+        progressBar = new JProgressBar(0, 100);
+        progressBar.setValue(0);
+        progressBar.setStringPainted(true);
 
-        JLabel label = new JLabel("Loading...");
-        panel.add(label);
+        waitingDlg.add(BorderLayout.CENTER, progressBar);
 
         ClassLoader cldr = this.getClass().getClassLoader();
 
-        try {
-            java.net.URL imageURL = cldr.getResource("loading.gif");
-            assert imageURL != null;
-            ImageIcon loadingIcon = new ImageIcon(new ImageIcon(imageURL).getImage().getScaledInstance(20, 20, Image.SCALE_DEFAULT));
-            JLabel iconLabel = new JLabel();
-            iconLabel.setIcon(loadingIcon);
-            loadingIcon.setImageObserver(iconLabel);
-            panel.add(iconLabel);
-        } catch (Exception e) {
-
-        }
-
-        waitingDlg.add(panel);
         waitingDlg.setAlwaysOnTop(true);
 
         waitingDlg.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
@@ -108,19 +135,61 @@ public class LogTableMgr {
         waitingDlg.setLocation(size.width / 2 - waitingDlg.getWidth() / 2,
                 size.height / 2 - waitingDlg.getHeight() / 2);
         waitingDlg.setVisible(true);
-
-        boolean isMerge = b;
-        if(!isMerge) {
+        waitingDlg.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        lm.reset();
+        LoadLogFileWorker lw = new LoadLogFileWorker(file, progressBar, lm);
+        lw.execute();
+    }
+    public void captureLog() {
+        if(isAutoCaptureLog) {
+            needSaveCaptureLog = true;
             lm.reset();
-            LoadLogFileWorker lw = new LoadLogFileWorker(file, lm);
+            CaptureLogWorker lw = new CaptureLogWorker(lm);
             lw.execute();
-        }else {
-            MergeLogFileWorker mw = new MergeLogFileWorker(file, lm);
-            mw.execute();
         }
+    }
+
+    boolean isAutoCaptureLog = true;
+
+    public void  stopCaptureLog() {
 
     }
 
+    boolean needSaveCaptureLog = false;
+    public void saveCapturedLog() {
+        if(!needSaveCaptureLog)
+            return;
+
+        Preferences prefs = Preferences.userNodeForPackage(
+                LogViewerApp.class).node(
+                LogViewerApp.class.getName().replaceFirst(".*\\.", ""));
+
+        String logDirStr = prefs.get("logDir", null);
+        if (logDirStr == null)
+            logDirStr = "./";
+
+        File logDir = new File(logDirStr);
+
+        JFileChooser fileChooser = new JFileChooser();
+        if (logDir.isDirectory() && logDir.canRead()) {
+            fileChooser.setCurrentDirectory(logDir);
+        }
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("TEXT FILES", "txt", "text");
+        fileChooser.setFileFilter(filter);
+        fileChooser.setDialogTitle("Specify a file to save");
+
+        fileChooser.setSelectedFile(new File("adblog.txt"));
+        int userSelection = fileChooser.showSaveDialog(null);
+
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            File fileToSave = fileChooser.getSelectedFile();
+            System.out.println("Save as file: " + fileToSave.getAbsolutePath());
+            String filePath = fileChooser.getCurrentDirectory().getAbsolutePath();
+
+            prefs.put("logDir", filePath);
+            lm.saveCapturedLog(fileToSave);
+        }
+    }
     public boolean findWord(String findWords, boolean caseSensitive, boolean forward) {
         int startLineNumber = 0;
         int[] selectedRow = getLogTable().getSelectedRows();
@@ -153,85 +222,232 @@ public class LogTableMgr {
         Clipboard clpbrd = Toolkit.getDefaultToolkit().getSystemClipboard();
         clpbrd.setContents(stringSelection, null);
     }
+    private PlugInMgr pluginMgr = new PlugInMgr();
 
     public PlugInMgr getPlugInMgr() {
         return pluginMgr;
     }
 
     public void addLogContentChangeListener(com.eric.org.LogTableListener logchangeListener) {
-        this.logchangeListener = logchangeListener;
+        this.mLogchangeListener = logchangeListener;
     }
-
-    private class LoadLogFileWorker extends SwingWorker<TableModel, String> {
-
-        private final File file;
+    private class CaptureLogWorker extends SwingWorker<TableModel, String> {
         private final LogModel model;
 
-        private LoadLogFileWorker(File file, LogModel model) {
-            this.file = file;
+        private CaptureLogWorker(LogModel model) {
             this.model = model;
         }
 
         @Override
+        protected TableModel doInBackground() {
+            try {
+                String adbPath =  System.getenv("ANDROID_HOME")+"\\platform-tools\\adb.exe";
+                String commandArray= adbPath + " logcat -b all";
+                Process process = Runtime.getRuntime().exec(commandArray);
+                InputStream is = process.getInputStream();
+                InputStreamReader isr = new InputStreamReader(is);
+                BufferedReader br = new BufferedReader(isr);
+
+                String s = br.readLine();
+                while (true && isAutoCaptureLog) {
+                    if(s!=null) publish(s);
+                    s = br.readLine();
+                }
+            } catch (IOException e) {
+            }
+
+            return model;
+        }
+
+        @Override
+        protected void process(List<String> chunks) {
+            for (String s : chunks) {
+                LogLine sl = new LogLine(s);
+                model.addRow(sl);
+            }
+            model.fireTableDataChanged();
+        }
+
+        @Override
+        protected void done() {
+        }
+    }
+
+    private class LoadLogFileWorker extends SwingWorker<TableModel, String> {
+        private JProgressBar progressBar;
+        private int readedLineCount=0;
+        private int lineCount=0;
+        private final File file;
+        private final LogModel model;
+
+        private LoadLogFileWorker(File file, JProgressBar pb, LogModel model) {
+            this.file = file;
+            this.model = model;
+            this.progressBar = pb;
+        }
+
+        @Override
         protected TableModel doInBackground() throws Exception {
+            //Get file lines count
+            LineNumberReader reader = null;
+            try {
+                reader = new LineNumberReader(new FileReader(file));
+                while ((reader.readLine()) != null);
+                lineCount = reader.getLineNumber();
+            } catch (Exception ex) {
+                lineCount = 100;
+            } finally {
+                if(reader != null)
+                    reader.close();
+            }
+
             BufferedReader br = new BufferedReader(new FileReader(file));
             String s;
+
             while ((s = br.readLine()) != null) {
                 publish(s);
+                readedLineCount++;
             }
             return model;
         }
 
         @Override
         protected void process(List<String> chunks) {
-            LogLine prev = null;
             for (String s : chunks) {
                 LogLine sl = new LogLine(s);
-
                 model.addRow(sl);
             }
+            model.fireTableDataChanged();
+            progressBar.setValue(readedLineCount*100/lineCount);
         }
 
         @Override
         protected void done() {
             waitingDlg.setVisible(false);
+            waitingDlg.setCursor(null);
             waitingDlg = null;
         }
     }
 
     private class MergeLogFileWorker extends SwingWorker<TableModel, String> {
-
-        private final File file;
+        private final File[] files;
+        private final File toSave;
         private final LogModel model;
 
-        private MergeLogFileWorker(File file, LogModel model) {
-            this.file = file;
+        private MergeLogFileWorker(File[] files, File fileToSave, LogModel model) {
+            this.files = files;
+            this.toSave = fileToSave;
             this.model = model;
         }
 
         @Override
         protected TableModel doInBackground() throws Exception {
-            BufferedReader br = new BufferedReader(new FileReader(file));
-            String s;
-            while ((s = br.readLine()) != null) {
-                publish(s);
+            BufferedReader[] brs = new BufferedReader[files.length];
+            for(int index=0; index<files.length; index++){
+                brs[index]= new BufferedReader(new FileReader(files[index]));
             }
+            FileWriter fileWriter = new FileWriter(toSave);
+
+            int INDEX_MAX = files.length;
+            int workingIndex = Integer.MAX_VALUE;
+            boolean isFinished[] = new boolean[INDEX_MAX];
+            String[] farStrings = new String[INDEX_MAX];
+            long[] farTs = new long[INDEX_MAX];
+
+            //Initialization
+            for(int i=0; i<INDEX_MAX;i++) {
+                isFinished[i] = false;
+            }
+
+            //
+            while(true) {
+                //Read the lines need read
+                if(workingIndex==Integer.MAX_VALUE){
+                    for(int i=0; i<INDEX_MAX;i++){
+                        if(!isFinished[i]) {
+                            farStrings[i] = brs[i].readLine();
+                            if (farStrings[i] == null) {
+                                isFinished[i] = true;
+                            }
+                        }
+                    }
+                }else if(workingIndex>=0 && workingIndex<INDEX_MAX) {
+                    farStrings[workingIndex]=brs[workingIndex].readLine();
+                    if(farStrings[workingIndex]==null){
+                        isFinished[workingIndex]=true;
+                    }
+                }
+
+                //If all file reach the end, break
+                boolean finishall = false;
+                for(int j=0; j<INDEX_MAX; j++) {
+                    if(!isFinished[j])
+                        finishall = false;
+                }
+                if(finishall)
+                    break;
+
+                //Parse all head lines
+                for(int i=0; i<INDEX_MAX; i++) {
+                    if(farStrings[i]!=null) {
+                            farTs[i] = getTS(farStrings[i]);
+                    }
+                    if(workingIndex == Integer.MAX_VALUE)
+                        workingIndex = i;
+                }
+                //Find the earlier line index.
+                for(int j=0; j<INDEX_MAX; j++) {
+                    if(farTs[workingIndex]>(farTs[j])) {
+                        workingIndex = j;
+                    }
+                }
+                //Write the earlier line to target file.
+                if(workingIndex>=0 && workingIndex<INDEX_MAX) {
+                    fileWriter.write(farStrings[workingIndex]);
+                    fileWriter.write('\n');
+                }
+            }
+            //Close all files
+            for(int i=0; i<=INDEX_MAX;i++) {
+                brs[i].close();
+            }
+            fileWriter.close();
             return model;
         }
 
         @Override
         protected void process(List<String> chunks) {
-            LogLine prev = null;
-            for (String s : chunks) {
-                LogLine sl = new LogLine(s);
-                model.insertRow(sl);
-            }
+            model.fireTableDataChanged();
         }
 
         @Override
         protected void done() {
-            waitingDlg.setVisible(false);
-            waitingDlg = null;
+            JOptionPane.showConfirmDialog(null,"Saved to "+ toSave,
+                    "Saved", JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE);
         }
+
+        private long getTS(String line) {
+            long ts = 0;
+
+            if (line.length() <= 33) return ts;
+
+            // Read time stamp
+            try {
+                int month = Integer.parseInt(line.substring(0, 2));
+                int day = Integer.parseInt(line.substring(3, 5));
+                int hour = Integer.parseInt(line.substring(6, 8));
+                int min = Integer.parseInt(line.substring(9, 11));
+                int sec  = Integer.parseInt(line.substring(12, 14));
+                int ms = Integer.parseInt(line.substring(15, 18));
+                ts = month;
+                ts = ts * 31 + day;
+                ts = ts * 24 + hour;
+                ts = ts * 60 + min;
+                ts = ts * 60 + sec;
+                ts = ts * 1000 + ms;
+            } catch (NumberFormatException nfe) { }
+            return ts;
+        }
+
     }
 }

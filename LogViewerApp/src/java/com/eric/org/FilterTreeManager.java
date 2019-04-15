@@ -24,18 +24,15 @@ import santhosh.CheckTreeSelectionModel;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
-import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreePath;
 import java.awt.*;
-import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.List;
 
-import static javax.swing.GroupLayout.Alignment.LEADING;
+import static javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED;
 
 /**
  * FilterTreeManager will cooridinate FilterTreeLstener/FilterConfigTreeModel/filterConfigtree/CheckTreeSelectionModel
@@ -43,7 +40,8 @@ import static javax.swing.GroupLayout.Alignment.LEADING;
 public class FilterTreeManager {
     private JTree filterConfigtree;
     private CheckTreeSelectionModel filterConfigTreeSelectionModel;
-    private FilterConfigNode originalTreeRoot;
+
+    private FilterConfigNode treeRoot;
     private FilterConfigTreeModel filterTreeModel;
     private FilterTreeListener filterTreeListener;
 
@@ -58,11 +56,6 @@ public class FilterTreeManager {
 
     private FilterTreeManager() {
     }
-    private String filterFilterText;
-
-    public String getFilterFilterText() {
-        return filterFilterText;
-    }
 
     public JTree getFilterConfigtree() {
         return filterConfigtree;
@@ -75,7 +68,6 @@ public class FilterTreeManager {
     public CheckTreeSelectionModel getFilterConfigTreeSelectionModel() {
         return filterConfigTreeSelectionModel;
     }
-
 
     public JComponent createFilterPanel() {
         final JPanel box = new JPanel(new BorderLayout());
@@ -119,8 +111,9 @@ public class FilterTreeManager {
 
 
         //Filter Tree panel
-        JComponent filterTreePanel = makeSingleFilterTreePanel();
-
+        JScrollPane filterTreePanel  = (JScrollPane) makeSingleFilterTreePanel();
+        filterTreePanel.setHorizontalScrollBarPolicy(HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        filterTreePanel.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
         box.add(filterTxPanel, BorderLayout.NORTH);
         box.add(Box.createVerticalGlue());
         box.add(filterTreePanel,BorderLayout.CENTER);
@@ -145,17 +138,33 @@ public class FilterTreeManager {
         return box;
     }
 
-    private void filterTree(String filteredText) {
-        //get a copy
-        DefaultMutableTreeNode filteredRoot = copyNode(originalTreeRoot);
-
-        if (!filteredText.trim().toString().equals("")) {
-            TreeNodeBuilder b = new TreeNodeBuilder(filteredText);
-            filteredRoot = b.prune(filteredRoot);
+    /*
+     * Remember the tree expand state
+     */
+    private void storeTreeExpendState() {
+        FilterConfigNode root = (FilterConfigNode)filterTreeModel.getRoot();
+        for(int index=0; index < root.getChildCount(); index++) {
+            FilterConfigNode nd = (FilterConfigNode)root.getChildAt(index);
+            nd.storeNodeExpendState(filterConfigtree, nd);
         }
+    }
 
-        filterTreeModel.setRoot(filteredRoot);
-        filterConfigtree.setModel(filterTreeModel);
+    private void reStoreTreeExpendState() {
+        FilterConfigNode root = (FilterConfigNode)filterTreeModel.getRoot();
+        for(int index=0; index < root.getChildCount(); index++) {
+            FilterConfigNode nd = (FilterConfigNode)root.getChildAt(index);
+            nd.setNodeExpandedState(filterConfigtree, nd);
+        }
+    }
+    private void filterTree(String filteredText) {
+        storeTreeExpendState();
+        filterTreeModel.rebuildTreeNode();
+        if (!filteredText.trim().equals("")) {
+            TreeNodeBuilder b = new TreeNodeBuilder(filteredText);
+            treeRoot = (FilterConfigNode) b.prune(treeRoot);
+        }
+        reStoreTreeExpendState();
+        filterTreeModel.updateTreeSelection();
         filterConfigtree.updateUI();
 
         //Only expand the selected path
@@ -167,41 +176,19 @@ public class FilterTreeManager {
         }
     }
 
-    /**
-     * Clone/Copy a tree node. TreeNodes in Swing don't support deep cloning.
-     *
-     * @param orig to be cloned
-     * @return cloned copy
-     */
-    private FilterConfigNode copyNode(FilterConfigNode orig) {
-        if(orig==null){
-            return null;
-        }
-        FilterConfigNode newOne = new FilterConfigNode((ConfigInfo) orig.getUserObject());
-        Enumeration enm = orig.children();
-
-        while (enm.hasMoreElements()) {
-
-            FilterConfigNode child = (FilterConfigNode) enm.nextElement();
-            newOne.add(copyNode(child));
-        }
-        return newOne;
-    }
 
     private JComponent makeSingleFilterTreePanel() {
 
         //Add Tree
-        originalTreeRoot = new FilterConfigNode(FilterConfigMgr.rootConfigInfo);
-        filterTreeModel = new FilterConfigTreeModel(originalTreeRoot);
+        treeRoot = new FilterConfigNode(FilterConfigMgr.rootConfigInfo);
+        filterTreeModel = new FilterConfigTreeModel(treeRoot);
 
         filterConfigtree = new JTree(filterTreeModel);
         filterConfigtree.setRootVisible(false);
         filterConfigtree.setShowsRootHandles(true);
         filterConfigtree.setEditable(false);
-        filterConfigtree.setDragEnabled(true);
-        filterConfigtree.setDropMode(DropMode.ON_OR_INSERT);
+
         filterConfigtree.putClientProperty("JTree.lineStyle", "Angled");
-//        filterConfigtree.setFillsViewportHeight(true);
 
         //Selection model will use tree model to analysis the data
         filterConfigTreeSelectionModel = new CheckTreeSelectionModel(filterTreeModel, true);
@@ -272,10 +259,9 @@ public class FilterTreeManager {
             FilterConfigNode node = (FilterConfigNode) aToRemove;
             filterTreeModel.removeFromParent(node);
         }
-
-//        filterTreeModel.reCreateTreeNodes();
     }
 
+    @SuppressWarnings("ThrowablePrintedToSystemOut")
     private void getDeleteList(FilterConfigNode tn, List toRemove) {
         if (tn == null)
             return;
@@ -385,7 +371,7 @@ public class FilterTreeManager {
         filterTreeModel.valueForPathChanged(slectedTp, cn);
     }
 
-    public FilterConfigNode getOriginalRoot() {
-        return originalTreeRoot;
+    public FilterConfigNode getRoot() {
+        return treeRoot;
     }
 }

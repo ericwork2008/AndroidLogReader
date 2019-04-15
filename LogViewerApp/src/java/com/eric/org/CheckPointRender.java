@@ -36,7 +36,7 @@ class CheckPointRender extends JPanel implements TableCellRenderer {
             int row, int column) {
 
         LogModel model = (LogModel) table.getModel();
-        RenderLine rl = model.getRenderLine(row);
+        RenderLine rl = model.getLineToBeShown(row);
 
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 

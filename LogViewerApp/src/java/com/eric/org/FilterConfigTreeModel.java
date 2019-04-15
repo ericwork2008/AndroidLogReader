@@ -36,8 +36,23 @@ public class FilterConfigTreeModel extends DefaultTreeModel {
         this.reload();
     }
 
+    /*
+     * Rebuild tree node from the full filter config tree
+     */
+    public void rebuildTreeNode() {
+        FilterConfigNode root = FilterTreeManager.getInstance().getRoot();
+        root.removeAllChildren();
+
+        if(FilterConfigMgr.rootConfigInfo.getChildren() != null) {
+            for (ConfigInfo ci : FilterConfigMgr.rootConfigInfo.getChildren()) {
+                addChildNode(ci,root);
+            }
+        }
+
+    }
+
     public void reCreateTreeNodes() {
-        FilterConfigNode root = FilterTreeManager.getInstance().getOriginalRoot();
+        FilterConfigNode root = FilterTreeManager.getInstance().getRoot();
         root.removeAllChildren();
 
         mTreeSelectionModel.clearSelection();
@@ -47,6 +62,21 @@ public class FilterConfigTreeModel extends DefaultTreeModel {
 
         this.setRoot(root);
         this.reload();
+    }
+    public void updateTreeSelection() {
+        mTreeSelectionModel.clearSelection();
+        FilterConfigNode root = (FilterConfigNode)this.getRoot();
+        updateNodeSelection(root);
+    }
+    public void updateNodeSelection(FilterConfigNode parentNode) {
+        for (int index = 0; index<parentNode.getChildCount(); index++) {
+            FilterConfigNode nd = (FilterConfigNode)parentNode.getChildAt(index);
+            ConfigInfo ci = (ConfigInfo)nd.getUserObject();
+            if(ci.enabled)
+                mTreeSelectionModel.addSelectionPath(getPath(nd));
+
+            updateNodeSelection(nd);
+        }
     }
     public void insertChildNode(ConfigInfo configIf, FilterConfigNode parentNode, int index) {
         FilterConfigNode tmp = new FilterConfigNode(configIf);
@@ -113,6 +143,7 @@ public class FilterConfigTreeModel extends DefaultTreeModel {
     public void removeFromParent(FilterConfigNode tn) {
         ConfigInfo cn = (ConfigInfo) tn.getUserObject();
         cn.getParent().removeChild(cn);
+
         this.removeNodeFromParent(tn);
     }
 
@@ -120,6 +151,7 @@ public class FilterConfigTreeModel extends DefaultTreeModel {
     public void attach(FilterConfigMgr fc) {
         FilterConfigMgr fc1 = fc;
     }
+
 
 
 }

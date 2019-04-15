@@ -49,10 +49,6 @@ public class TristateButtonModel extends ToggleButtonModel {
                 TristateState.SELECTED : TristateState.DESELECTED);
     }
 
-    // Empty overrides of superclass methods
-    public void setArmed(boolean b) {
-    }
-
     public void setPressed(boolean b) {
     }
 

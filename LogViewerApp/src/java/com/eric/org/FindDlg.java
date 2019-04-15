@@ -158,7 +158,9 @@ class FindDlg extends JDialog {
         Toolkit toolkit = getToolkit();
         Dimension size = toolkit.getScreenSize();
 
-        setSize(400,100);
+        setMinimumSize(new Dimension(700,150));
+        pack();
+
         setLocation(size.width/2 - getWidth()/2,
                 size.height/2 - getHeight()/2);
 
@@ -166,7 +168,7 @@ class FindDlg extends JDialog {
 
     }
 
-    public static void main(String args[]) {
+    public static void main(String[] args) {
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
                 try {

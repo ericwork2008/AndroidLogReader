@@ -16,7 +16,7 @@
 
 package com.eric.org;
 
-import com.eric.org.Util.RenderLines;
+import com.eric.org.Util.RenderLine;
 import com.eric.org.config.ConfigInfo;
 import com.eric.org.config.FilterConfigMgr;
 import com.eric.org.util.LogLine;
@@ -27,125 +27,96 @@ import javax.swing.table.TableModel;
 import java.awt.*;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.Vector;
 import java.util.regex.Matcher;
 
 public class LogModel extends AbstractTableModel {
     private static JProgressBar progressBar = null;
     private static JDialog progressDlg = null;
 
-    private static FilterWorker lw = null;
-    //Filter can be reset when filter in progress
+    //Filter can be reset when filter in applying progress
     private static volatile boolean resetFilterProgress = false;
+
     //Remember previous selection
-    private static int previousSelectedOriginalLineNum = 0;
-    private static int previousSelectedScreenfocusLineNum = 0;
-    private static int deltaLineNumber;//previous selection gap to the top
+    private static int previousSelectedOriginalRowNum = 0;
+    private static int previousSelectedScreenfocusRowNum = 0;
+    private static int distance;//previous selection distance to the top
+
     //Hide or unhide Log
     private static boolean mHideLine = false;
 
     private com.eric.org.LogTableMgr owner;
 
-    private static int screenLineNo = 0;
-    private int mLn = 0;
-    private static int last_find_index = 0; // used to record last find index when merge
-
-    //Showing Line Map
+    /**
+     *  Full Log lines  --Applied Filter--> Filtered Lines  --> Show on the screen
+     */
+    //Filtered Lines Row <-> the row in the full log Lines
     private HashMap<Integer, Integer> showingLineMap = new HashMap<>();
 
-    public RenderLines getRenderLines() {
-        return renderLines;
-    }
-
-    private com.eric.org.Util.RenderLines renderLines = new com.eric.org.Util.RenderLines();
+    /**
+     * Full Log Lines
+     */
+    private Vector<RenderLine> fullLogLines = new Vector<>();
 
     public LogModel(com.eric.org.LogTableMgr logTableMgr) {
         owner = logTableMgr;
     }
 
+    private static int filteredRowNo = 0;
+    private int mLn = 0; //counter
 
-    //
-    public void setDeltaLineNumber(int deltaLineNumber) {
-        LogModel.deltaLineNumber = deltaLineNumber;
-    }
-
-    public int getSelectedOriginalLineNum() {
-        return previousSelectedOriginalLineNum;
+    public void setDistance(int distance) {
+        LogModel.distance = distance;
     }
 
     public void setSelectedOriginalLineNum(int focusLineNum) {
-        LogModel.previousSelectedOriginalLineNum = focusLineNum;
+        LogModel.previousSelectedOriginalRowNum = focusLineNum;
     }
 
     public synchronized int screenToOriginalNumber(int screenNum) {
         return showingLineMap.get(screenNum);
     }
 
-    public synchronized int originalToScreenLineNumber(int originalNum) {
-        int rst = -1;
-        int count = showingLineMap.size();
-        for (int i = 0; i < count; i++) {
-            if (showingLineMap.get(i) == originalNum) {
-                rst = i;
-                break;
-            }
-        }
-        return rst;
-    }
-    public void insertRow(LogLine sl) {
-        resetRender();
-        //find and insert row
-        last_find_index = findLineBefore(last_find_index,renderLines,sl);
-//        renderLines.insertElementAt();
-    }
-    private int findLineBefore(int last,com.eric.org.Util.RenderLines rls, LogLine sl) {
-        for (int i = last; i<rls.size(); i++) {
-//            LogLine tl = rls.get(i);
-//            if(tl.)
-        }
-        return 0;
-    }
-    //Original Data Store
+    /**
+     * Add one log line
+     * @param ll
+     */
     public void addRow(LogLine ll) {
         com.eric.org.Util.RenderLine rl = new com.eric.org.Util.RenderLine(ll, mLn);
-        renderLines.add(rl);
+        //fullLogLines will record the full log lines
+        fullLogLines.add(rl);
         mLn++;
-        List<com.eric.org.config.ConfigInfo> filterTable = FilterConfigMgr.getActiveFilterList();
-        updateScreenLog(rl, filterTable);
-        dataChanged();
-    }
-
-    public void delRow(int row) {
-        renderLines.remove(row);
+        List<ConfigInfo> filterTable = FilterConfigMgr.getActiveFilterList();
+        addToFilteredLines(rl, filterTable);
     }
 
     private void dataChanged(){
         fireTableDataChanged();
-        if(owner.logchangeListener != null){
-            owner.logchangeListener.onContentChanged();
+        if(owner.mLogchangeListener != null){
+            owner.mLogchangeListener.onContentChanged();
         }
     }
 
     //Reset Render and orginal Data
     public void reset() {
         resetRender();
-        renderLines.clear();
+        fullLogLines.clear();
 
         mHideLine = false;
-        screenLineNo = 0;
+        filteredRowNo = 0;
     }
 
     /*
-     *  Only reset render without clear original log lines
+     *  Only reset filtered Lines without clear original log lines
      */
     private synchronized void resetRender() {
-        showingLineMap.clear();
-        clearFilterHitCount();
-        mLn = 0;
-
-        int rows = getRowCount();
+        int rows = showingLineMap.size();
         System.out.println("rows = "+rows );
         if (rows<1) {
             System.out.println("ERROR: rows < 1" );
@@ -157,12 +128,15 @@ public class LogModel extends AbstractTableModel {
                 System.out.println("rows="+rows+" Exception: " + e.getMessage());
             }
         }
+        showingLineMap.clear();
+        clearFilterHitCount();
+        mLn = 0;
     }
 
     private void clearFilterHitCount() {
         //clear filter hit count
-        List<com.eric.org.config.ConfigInfo> filterTable = FilterConfigMgr.getActiveFilterList();
-        if(filterTable ==null){
+        List<ConfigInfo> filterTable = FilterConfigMgr.getActiveFilterList();
+        if(filterTable ==null) {
             return;
         }
         for (com.eric.org.config.ConfigInfo fc: filterTable) {
@@ -184,7 +158,7 @@ public class LogModel extends AbstractTableModel {
     @Override
     public Object getValueAt(int row, int col) {
         if (row < showingLineMap.size()) {
-            com.eric.org.Util.RenderLine rl = renderLines.get(showingLineMap.get(row));
+            RenderLine rl = fullLogLines.get(showingLineMap.get(row));
             String parsedRst = owner.getPlugInMgr().getParsedResult(rl.getLogline());
             if ((parsedRst != null) && (!parsedRst.isEmpty())) {
                 rl.setParsed();
@@ -201,7 +175,7 @@ public class LogModel extends AbstractTableModel {
                 + " to " + value
                 + " (an instance of "
                 + value.getClass() + ")");
-        renderLines.set(row, (com.eric.org.Util.RenderLine) value);
+        fullLogLines.set(row, (com.eric.org.Util.RenderLine) value);
         this.dataChanged();
         System.out.println("New value of data:");
 
@@ -217,20 +191,20 @@ public class LogModel extends AbstractTableModel {
     }
 
     public Class getColumnClass(int c) {
-        if (renderLines.size() > 0) {
+        if (fullLogLines.size() > 0) {
             return getValueAt(0, c).getClass();
         }
         return null;
     }
 
-    public com.eric.org.Util.RenderLine getRenderLine(int row) {
+    public RenderLine getLineToBeShown(int row) {
         int index = 0;
         if (row>=0 && row < showingLineMap.size())
             index = showingLineMap.get(row);
         if(index <0) {
             System.out.println("ERROR: index = "+index);
         } else {
-            return renderLines.get(index);
+            return fullLogLines.get(index);
         }
         return null;
     }
@@ -255,7 +229,7 @@ public class LogModel extends AbstractTableModel {
     public void applyFilter() {
         //Check the filter progress, if there is on going process
         // Reset the process to the beginning
-        if(renderLines.size() == 0){
+        if(fullLogLines.size() == 0){
             return;
         }
         resetRender();
@@ -314,9 +288,8 @@ public class LogModel extends AbstractTableModel {
         boolean cont = true;
         System.out.println("findAndScrollToWords, begin="+begin+"end="+end);
         do{
-
             int orgLine = showingLineMap.get(i);
-            com.eric.org.Util.RenderLine msg = renderLines.get(orgLine);
+            RenderLine msg = fullLogLines.get(orgLine);
             String source = msg.getLogline().line;
 
             if (caseSensitive) {
@@ -346,8 +319,22 @@ public class LogModel extends AbstractTableModel {
         return find;
     }
 
-
-
+    public void saveCapturedLog(File file) {
+        FileWriter fileWriter = null;
+        try {
+            fileWriter = new FileWriter(file);
+            for(int i = 0; i<fullLogLines.size();i++) {
+                fileWriter.write(fullLogLines.get(i).getLogline().msg);
+                fileWriter.write('\n');
+            }
+            fileWriter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    /**
+     * Apply Filter
+     */
     private class FilterWorker extends SwingWorker<TableModel, String> {
 
         private final LogModel model;
@@ -357,18 +344,16 @@ public class LogModel extends AbstractTableModel {
         }
 
         @Override
-        protected TableModel doInBackground() throws Exception {
-            int total = model.renderLines.size();
-
+        protected TableModel doInBackground() {
             int l = 0;
-            screenLineNo = 0;
+            filteredRowNo = 0;
 
             List<com.eric.org.config.ConfigInfo> filterTable = FilterConfigMgr.getActiveFilterList();
-            for (int i = 0; i < total; i++) {
+            for (int i = 0; i < model.fullLogLines.size(); i++) {
                 if (resetFilterProgress) {
                     resetFilterProgress = false;
                     i = 0;
-                    screenLineNo = 0;
+                    filteredRowNo = 0;
                     l = 0;
                     setProgress(0);
                     resetRender();
@@ -377,18 +362,13 @@ public class LogModel extends AbstractTableModel {
                     filterTable = FilterConfigMgr.getActiveFilterList();
                 }
 
-                com.eric.org.Util.RenderLine rl = model.renderLines.get(i);
-
-                updateScreenLog(rl, filterTable);
+                com.eric.org.Util.RenderLine rl = model.fullLogLines.get(i);
+                addToFilteredLines(rl, filterTable);
 
                 publish("");
-                if (rl.getOrgLineNumber() <= previousSelectedOriginalLineNum) {
-                    previousSelectedScreenfocusLineNum = screenLineNo - 1;
-//                    System.out.println("previousSelectedOriginalLineNum: " + previousSelectedOriginalLineNum);
-//                    System.out.println("previousSelectedScreenfocusLineNum: " + previousSelectedScreenfocusLineNum);
-                }
+
                 l++;
-                int progressRatio = (int) ((double) l / total * 100);
+                int progressRatio = (int) ((double) l /  model.fullLogLines.size() * 100);
                 setProgress(progressRatio);
             }
 
@@ -406,15 +386,21 @@ public class LogModel extends AbstractTableModel {
             progressDlg.setVisible(false);
             progressDlg.dispose();
             progressDlg = null;
-            lw = null;
             dataChanged();
-            if(isValidScreenLineNumber(previousSelectedScreenfocusLineNum)){
-                owner.getLogTable().scrollToVisible(previousSelectedScreenfocusLineNum, deltaLineNumber);
-                System.out.println("scrollToVisible: " + previousSelectedScreenfocusLineNum + " deltaLineNumber:" +deltaLineNumber);
-                owner.getLogTable().setRowSelectionInterval(previousSelectedScreenfocusLineNum, previousSelectedScreenfocusLineNum);
+
+            //Get new screen row no.
+            int newSelectedOriginalRowNum=0;
+            for(int i=0; i<showingLineMap.size(); i++){
+                if(showingLineMap.get(i)==previousSelectedOriginalRowNum)
+                    newSelectedOriginalRowNum = i;
             }
-//            if(owner.logchangeListener != null){
-//                owner.logchangeListener.onContentChanged();
+            if(isValidScreenLineNumber(newSelectedOriginalRowNum)){
+                owner.getLogTable().scrollToVisible(newSelectedOriginalRowNum, distance);
+                System.out.println("scrollToVisible: " + newSelectedOriginalRowNum + " distance:" + distance);
+                owner.getLogTable().setRowSelectionInterval(newSelectedOriginalRowNum, newSelectedOriginalRowNum);
+            }
+//            if(owner.mLogchangeListener != null){
+//                owner.mLogchangeListener.onContentChanged();
 //            }
         }
     }
@@ -423,8 +409,8 @@ public class LogModel extends AbstractTableModel {
         return (num >= 0)&&(num<showingLineMap.size());
     }
 
-    private static com.eric.org.config.ConfigInfo getShottedItemFromFilterTable(LogLine ll, List<com.eric.org.config.ConfigInfo> filterTable){
-        com.eric.org.config.ConfigInfo lfi = null;
+    private static ConfigInfo getShottedItemFromFilterTable(LogLine ll, List<ConfigInfo> filterTable) {
+        ConfigInfo lfi = null;
         boolean interesting = false;
         int tc = filterTable.size();
         for (ConfigInfo aFilterTable : filterTable) {
@@ -441,30 +427,28 @@ public class LogModel extends AbstractTableModel {
         return lfi;
     }
 
-    private void updateScreenLog(com.eric.org.Util.RenderLine rl, List<com.eric.org.config.ConfigInfo> fltList) {
-
+    private void addToFilteredLines(RenderLine rl, List<ConfigInfo> fltList) {
         if (mHideLine || fltList ==null) {
             // fill all line
-            showingLineMap.put(screenLineNo, rl.getOrgLineNumber());
-            screenLineNo++;
-
+            showingLineMap.put(filteredRowNo, rl.getOrgLineNo());
+            filteredRowNo++;
         } else {
             if (fltList.size() > 0) {
-                com.eric.org.config.ConfigInfo fi = getShottedItemFromFilterTable(rl.getLogline(), fltList);
+                ConfigInfo fi = getShottedItemFromFilterTable(rl.getLogline(), fltList);
                 if (fi != null) {
                     // Returning true indicates this row should be shown.
-                    showingLineMap.put(screenLineNo, rl.getOrgLineNumber());
+                    showingLineMap.put(filteredRowNo, rl.getOrgLineNo());
                     rl.setFilterShotted(true, fi.ftColor,fi.bgColor );
                     fi.hitCount++;
-                    screenLineNo++;
+                    filteredRowNo++;
                 } else {
                     rl.setFilterShotted(false, com.eric.org.config.ConfigInfo.DEFAULT_FT_COLOR, com.eric.org.config.ConfigInfo.DEFAULT_BG_COLOR);
                 }
             } else {
                 rl.setFilterShotted(true, com.eric.org.config.ConfigInfo.DEFAULT_FT_COLOR, com.eric.org.config.ConfigInfo.DEFAULT_BG_COLOR);
                 // fill all line
-                showingLineMap.put(screenLineNo, rl.getOrgLineNumber());
-                screenLineNo++;
+                showingLineMap.put(filteredRowNo, rl.getOrgLineNo());
+                filteredRowNo++;
             }
         }
     }

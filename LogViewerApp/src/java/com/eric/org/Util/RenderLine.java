@@ -20,11 +20,16 @@ import com.eric.org.util.LogLine;
 
 import java.awt.Color;
 
+/**
+ * Represent the Line which will be render on the screen.
+ * RenderLine have the properties which have the passed checkpoint string, etc.
+ */
 public class RenderLine {
     private LogLine mLogline;
 
     private int mOrgLineNumber; // Original line number
 
+    //CheckPointStr is the output by log plugin parser.
     private String mCheckPointStr;
     private boolean haveParserResult = false;
 
@@ -69,7 +74,7 @@ public class RenderLine {
         return mLogline;
     }
 
-    public int getOrgLineNumber(){
+    public int getOrgLineNo(){
         return mOrgLineNumber;
     }
 
