@@ -42,6 +42,8 @@ class LogViewerApp extends JFrame {
 
     private com.eric.org.FilterTreeManager filterTreeManager = FilterTreeManager.getInstance();
 
+    static String  adbPath = "";
+
     private LogViewerApp() {
         try {
             Application application = Application.getApplication();
@@ -65,16 +67,6 @@ class LogViewerApp extends JFrame {
 
         //Android Device
         AndroidDebugBridge.init(false);
-        String adbPath = "";
-        try{
-            adbPath = System.getenv("ANDROID_HOME");
-        }catch (Exception e){
-            adbPath = "";
-        }
-        if (adbPath.isEmpty())
-            adbPath = System.getProperty("user.home") + "\\AppData\\Local\\Android\\sdk";
-
-        adbPath += "\\platform-tools\\adb";
 
         AndroidDebugBridge debugBridge = AndroidDebugBridge.createBridge(adbPath, true);
         if (debugBridge == null) {
@@ -108,9 +100,22 @@ class LogViewerApp extends JFrame {
             JOptionPane.showMessageDialog(null, "Java version have to at least 1.7, your version is " + version, "Java is too old", JOptionPane.ERROR_MESSAGE);
             return;
         }
-
         String osName = System.getProperty("os.name").toLowerCase();
         boolean isMacOs = osName.startsWith("mac os x");
+
+        try{
+            adbPath = System.getenv("ANDROID_HOME");
+        }catch (Exception e){
+            adbPath = "";
+        }
+        if (adbPath == null || adbPath.isEmpty())
+            adbPath = System.getProperty("user.home");
+        if (isMacOs) {
+            adbPath += "/Library/Android/sdk/platform-tools/adb";
+        }else{
+            adbPath += "\\AppData\\Local\\Android\\sdk\\platform-tools\\adb";
+        }
+
         if (isMacOs) {
             System.setProperty("apple.laf.useScreenMenuBar", "true");
             System.setProperty("com.apple.mrj.application.apple.menu.about.name", "LogViewer");
