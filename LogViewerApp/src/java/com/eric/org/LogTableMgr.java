@@ -241,7 +241,7 @@ public class LogTableMgr {
         @Override
         protected TableModel doInBackground() {
             try {
-                String adbPath =  System.getenv("ANDROID_HOME")+"\\platform-tools\\adb.exe";
+                String adbPath =  LogViewerApp.adbPath;
                 String commandArray= adbPath + " logcat -b all";
                 Process process = Runtime.getRuntime().exec(commandArray);
                 InputStream is = process.getInputStream();
