@@ -176,9 +176,7 @@ public class LogModel extends AbstractTableModel {
                 + " (an instance of "
                 + value.getClass() + ")");
         fullLogLines.set(row, (com.eric.org.Util.RenderLine) value);
-        this.dataChanged();
         System.out.println("New value of data:");
-
     }
 
     public String getColumnName(int col) {

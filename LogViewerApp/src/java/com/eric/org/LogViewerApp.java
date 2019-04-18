@@ -108,12 +108,15 @@ class LogViewerApp extends JFrame {
         }catch (Exception e){
             adbPath = "";
         }
-        if (adbPath == null || adbPath.isEmpty())
+        if (adbPath == null || adbPath.isEmpty()){
             adbPath = System.getProperty("user.home");
-        if (isMacOs) {
-            adbPath += "/Library/Android/sdk/platform-tools/adb";
+            if (isMacOs) {
+                adbPath += "/Library/Android/sdk/platform-tools/adb";
+            }else{
+                adbPath += "\\AppData\\Local\\Android\\sdk\\platform-tools\\adb";
+            }
         }else{
-            adbPath += "\\AppData\\Local\\Android\\sdk\\platform-tools\\adb";
+            adbPath +="\\platform-tools\\adb";
         }
 
         if (isMacOs) {

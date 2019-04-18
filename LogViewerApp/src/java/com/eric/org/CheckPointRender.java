@@ -61,22 +61,28 @@ class CheckPointRender extends JPanel implements TableCellRenderer {
         loglineLabl.setFont(table.getFont());
         loglineLabl.setText(rl.getLogline().line);
 
-
-        int rowHeight = table.getRowHeight();
-
-        rowHeight = Math.max(rowHeight, getPreferredSize().height);
-
-        table.setRowHeight(row, rowHeight);
-
         if(table.isRowSelected(row)){
             parserRsltLable.setOpaque(false);
             parserRsltLable.setForeground(Color.WHITE);
             loglineLabl.setForeground(Color.WHITE);
+            setBackground(Color.BLUE);
         }else{
             parserRsltLable.setForeground(Color.BLACK);
             loglineLabl.setForeground(Color.BLACK);
-        }
 
+            if(rl.isFilterShotted()){
+                setForeground(Color.decode(rl.getFtColor()));
+                setBackground(Color.decode(rl.getBgColor()));
+            }else{
+                setForeground(Color.GRAY);
+                setBackground(Color.WHITE);
+            }
+        }
+        setSize(table.getColumnModel().getColumn(column).getWidth(), (int) getPreferredSize().getHeight());
+//
+//        int rowHeight = table.getRowHeight();
+//        rowHeight = Math.max(rowHeight, getPreferredSize().height);
+//        table.setRowHeight(row, rowHeight);
         return this;
     }
 

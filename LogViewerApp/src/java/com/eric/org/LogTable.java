@@ -23,6 +23,7 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
+import javax.swing.table.TableColumnModel;
 import java.awt.*;
 import java.awt.event.*;
 
@@ -47,15 +48,39 @@ public class LogTable extends JTable implements MouseWheelListener{
                 final Font smallFont = new Font(currentFont.getName(), currentFont.getStyle(), currentFont.getSize() - 1);
                 setFont(smallFont);
             }
+            resizeRowHight();
         }else {
+            resizeRowHight();
             getParent().dispatchEvent(e);
         }
     }
+    public void resizeRowHight() {
+        // getLogsTable() returns JTable instance
+        Rectangle vr = getVisibleRect();
+        int firstRow = rowAtPoint(vr.getLocation());
+        vr.translate(0, vr.height);
+        int visibleRows = rowAtPoint(vr.getLocation()) - firstRow;
+        int lastRow = (visibleRows > 0) ? visibleRows+firstRow : getRowCount();
 
+        System.out.println("first visible row: " + firstRow + " last visible row: " + lastRow);
+        firstRow = Math.max(firstRow-10, 0);
+        lastRow = Math.min(lastRow+10, getRowCount());
+        for(int rowNum=firstRow; rowNum<=lastRow; rowNum++) {
+            TableCellRenderer renderer = getCellRenderer(rowNum, 0);
+            Component c = prepareRenderer(renderer, rowNum, 0);
+            int width = c.getPreferredSize().width + getIntercellSpacing().width;
+            preferredWidth = Math.max(preferredWidth, width);
+            int height = c.getPreferredSize().height + getIntercellSpacing().height;
+            int rowHeight = getRowHeight();
+            rowHeight = Math.max(rowHeight, height);
+            setRowHeight(rowNum, rowHeight);
+         }
+    }
     public LogTable(LogModel model) {
         super(model);
         setTableHeader(null);
-        this.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+//        this.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        this.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
         this.setPreferredScrollableViewportSize(Toolkit.getDefaultToolkit().getScreenSize());
 
         setShowGrid(false);
@@ -103,7 +128,6 @@ public class LogTable extends JTable implements MouseWheelListener{
     public TableCellRenderer getCellRenderer(int row, int column) {
         LogModel model = (LogModel) getModel();
         RenderLine rl = model.getLineToBeShown(row);
-
         TableCellRenderer renderer = null;
         if ((rl != null) && (rl.isParsed())){
             renderer =  mCheckpointRenderer;
@@ -111,19 +135,6 @@ public class LogTable extends JTable implements MouseWheelListener{
             renderer = super.getCellRenderer(row, column);
         }
 
-        TableColumn tableColumn = getColumnModel().getColumn(column);
-
-        Component c = prepareRenderer(renderer, row, column);
-        int width = c.getPreferredSize().width + getIntercellSpacing().width;
-        preferredWidth = Math.max(preferredWidth, width);
-
-        tableColumn.setPreferredWidth( preferredWidth );
-
-        int height = c.getPreferredSize().height + getIntercellSpacing().height;
-        int rowHeight = getRowHeight();
-        rowHeight = Math.max(rowHeight, height);
-
-        setRowHeight(row, rowHeight);
         return renderer;
     }
 

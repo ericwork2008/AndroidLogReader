@@ -379,7 +379,7 @@ public class LogTableMgr {
                 }
 
                 //If all file reach the end, break
-                boolean finishall = false;
+                boolean finishall = true;
                 for(int j=0; j<INDEX_MAX; j++) {
                     if(!isFinished[j])
                         finishall = false;
@@ -387,10 +387,12 @@ public class LogTableMgr {
                 if(finishall)
                     break;
 
-                //Parse all head lines
+                //Parse all head lines to get TS value
                 for(int i=0; i<INDEX_MAX; i++) {
                     if(farStrings[i]!=null) {
-                            farTs[i] = getTS(farStrings[i]);
+                        farTs[i] = getTS(farStrings[i]);
+                    } else {
+                        farTs[i]=Long.MAX_VALUE;
                     }
                     if(workingIndex == Integer.MAX_VALUE)
                         workingIndex = i;
@@ -403,6 +405,8 @@ public class LogTableMgr {
                 }
                 //Write the earlier line to target file.
                 if(workingIndex>=0 && workingIndex<INDEX_MAX) {
+                    if(farStrings[workingIndex]==null)
+                        System.out.println("ERROR");
                     fileWriter.write(farStrings[workingIndex]);
                     fileWriter.write('\n');
                 }
@@ -417,7 +421,6 @@ public class LogTableMgr {
 
         @Override
         protected void process(List<String> chunks) {
-            model.fireTableDataChanged();
         }
 
         @Override
