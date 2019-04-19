@@ -1,3 +1,16 @@
 # exclude everything except directory out and production
 out
 production
+.gradle
+.idea
+app/build/
+app/gradle/
+app/gradlew
+common/build/
+common/gradle/
+common/gradlew
+common/gradlew.bat
+gradle/
+gradlew
+gradlew.bat
+

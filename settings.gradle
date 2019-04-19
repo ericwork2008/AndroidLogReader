@@ -1,0 +1,4 @@
+rootProject.name = 'AndroidLogViewer'
+
+include ':common', ':app'
+//includeFlat 'common', 'app'
