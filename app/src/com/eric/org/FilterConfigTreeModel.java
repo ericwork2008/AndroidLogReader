@@ -58,6 +58,10 @@ public class FilterConfigTreeModel extends DefaultTreeModel {
 
         mTreeSelectionModel.clearSelection();
 
+        if(FilterConfigMgr.rootConfigInfo.getChildren() == null){
+            System.out.println("Error: Filter Empty");
+            return;
+        }
         for (ConfigInfo ci : FilterConfigMgr.rootConfigInfo.getChildren()) {
             addChildNode(ci,root);
         }

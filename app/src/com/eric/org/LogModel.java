@@ -108,8 +108,6 @@ public class LogModel extends AbstractTableModel {
     public synchronized void reset() {
         resetRender();
         fullLogLines.clear();
-
-        mHideLine = false;
         filteredRowNo = 0;
     }
 
@@ -339,7 +337,7 @@ public class LogModel extends AbstractTableModel {
         private FilterWorker(LogModel model) {
             this.model = model;
         }
-
+        int progressRatio = 0;
         @Override
         protected TableModel doInBackground() {
             int l = 0;
@@ -365,15 +363,21 @@ public class LogModel extends AbstractTableModel {
                 publish("");
 
                 l++;
-                int progressRatio = (int) ((double) l /  model.fullLogLines.size() * 100);
-                setProgress(progressRatio);
+                progressRatio = (int) ((double) l /  model.fullLogLines.size() * 100);
+                if(i%1000==0){
+                    try {
+                        Thread.sleep(10);
+                    } catch (InterruptedException e) {
+//                        e.printStackTrace();
+                    }
+                }
             }
-
             return model;
         }
 
         @Override
         protected void process(List<String> chunks) {
+            setProgress(progressRatio);
             dataChanged();
         }
 

@@ -94,6 +94,7 @@ public class LogTable extends JTable implements MouseWheelListener{
         this.setAutoResizeMode( JTable.AUTO_RESIZE_OFF );
         Dimension d = Toolkit.getDefaultToolkit().getScreenSize();
         this.setPreferredScrollableViewportSize(d);
+        preferredWidth = (int) d.getWidth();
 
         setShowGrid(false);
 
@@ -102,7 +103,7 @@ public class LogTable extends JTable implements MouseWheelListener{
         //Set Column 0
         TableColumn column = null;
         column = this.getColumnModel().getColumn(0);
-        column.setPreferredWidth(d.width);
+        column.setPreferredWidth(preferredWidth);
 
         setRowSelectionAllowed(true);
         setColumnSelectionAllowed(false);

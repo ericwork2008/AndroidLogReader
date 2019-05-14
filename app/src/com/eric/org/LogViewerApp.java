@@ -25,6 +25,7 @@ import com.apple.eawt.ApplicationEvent;
 import com.eric.org.config.FilterConfigMgr;
 
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
@@ -43,17 +44,16 @@ class LogViewerApp extends JFrame {
 
     private LogViewerApp() {
         try {
+            ImageIcon icon = new ImageIcon(getClass().getResource("icon.jpeg"));
+            if (icon != null) {
+                setIconImage(icon.getImage());
+            }
             Application application = Application.getApplication();
-
-            java.net.URL imgURL = getClass().getClassLoader().getResource("icon.jpeg");
-            if (imgURL != null) {
-                ImageIcon icon = new ImageIcon(imgURL);
+            if (icon != null) {
                 application.setDockIconImage(icon.getImage());
             }
-
             // add our adapter as a listener on the application object
             application.addApplicationListener(new ApplicationAdapterImp(this));
-
         } catch (Exception e1) {
 ////            LOGGER.warn("Can't load icon: " + e1.getMessage());
         }
@@ -100,21 +100,6 @@ class LogViewerApp extends JFrame {
 
         String osName = System.getProperty("os.name").toLowerCase();
         boolean isMacOs = osName.startsWith("mac os x");
-//        try{
-//            adbPath = System.getenv("ANDROID_HOME");
-//        }catch (Exception e){
-//            adbPath = "";
-//        }
-//        if (adbPath == null || adbPath.isEmpty()){
-//            adbPath = System.getProperty("user.home");
-//            if (isMacOs) {
-//                adbPath += "/Library/Android/sdk/platform-tools/adb";
-//            }else{
-//                adbPath += "\\AppData\\Local\\Android\\sdk\\platform-tools\\adb";
-//            }
-//        }else{
-//            adbPath +="\\platform-tools\\adb";
-//        }
         adbPath = "adb";
         if (isMacOs) {
             System.setProperty("apple.laf.useScreenMenuBar", "true");
@@ -227,7 +212,9 @@ class LogViewerApp extends JFrame {
                 Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
         findItem.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent event) {
-                new com.eric.org.FindDlg(logTableMgr).setVisible(true);
+                FindDlg findDlg = new com.eric.org.FindDlg(logTableMgr);
+                findDlg.setAlwaysOnTop(true);
+                findDlg.setVisible(true);
             }
         });
 
@@ -333,36 +320,27 @@ class LogViewerApp extends JFrame {
      */
     private void loadFilterFile() {
         File file = null;
-
-        FileDialog fDialog = new FileDialog(this, "Load", FileDialog.LOAD);
-        fDialog.setFilenameFilter(new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return name.endsWith(".xml");
-            }
-        });
         String filterDirStr = PreferenceSetting.getFilterDir();
-
         File filterDir = new File(filterDirStr);
-        if (filterDir.isDirectory() && filterDir.canRead()) {
-            fDialog.setDirectory(filterDirStr);
-        }
+        JFileChooser fDialog = new JFileChooser(filterDir);
+        fDialog.setFileFilter(new FileNameExtensionFilter("Filter File(*.xml)", "xml"));
+        fDialog.setFileSelectionMode(JFileChooser.FILES_ONLY);
+        fDialog.setMultiSelectionEnabled(false);
 
-        fDialog.setVisible(true);
-        fDialog.setModal(true);
-        String filename = fDialog.getFile();
-        if (filename == null) {
-            System.out.println("You cancelled the choice");
-        } else {
-            String filePath = fDialog.getDirectory();
+        String filePath = "";
+        int rVal = fDialog.showOpenDialog(this);
+        if (rVal == JFileChooser.APPROVE_OPTION) {
+            filePath = fDialog.getCurrentDirectory().toString();
+            file = fDialog.getSelectedFile();
+
             PreferenceSetting.setFilterDir(filePath);
-            System.out.println("You chose " + filePath + "/" + filename);
-            String path = fDialog.getDirectory() + fDialog.getFile();
-            file = new File(path);
-
+            System.out.println("You chose " + filePath);
             filterTreeManager.loadFile(file);
 
             logTableMgr.applyFilter();
+        }
+        if (rVal == JFileChooser.CANCEL_OPTION) {
+            System.out.println("You cancelled the choice");
         }
     }
 
@@ -371,33 +349,27 @@ class LogViewerApp extends JFrame {
      */
     private void saveFilterFile() {
         File file = null;
-        FileDialog fDialog = new FileDialog(this, "Save", FileDialog.SAVE);
-        fDialog.setFilenameFilter(new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return name.endsWith(".xml");
-            }
-        });
         String filterDirStr = PreferenceSetting.getFilterDir();
-
         File filterDir = new File(filterDirStr);
-        if (filterDir.isDirectory() && filterDir.canRead()) {
-            fDialog.setDirectory(filterDirStr);
-        }
+        JFileChooser fDialog = new JFileChooser(filterDir);
+        fDialog.setFileFilter(new FileNameExtensionFilter("Filter File(*.xml)", "xml"));
+        fDialog.setFileSelectionMode(JFileChooser.FILES_ONLY);
+        fDialog.setMultiSelectionEnabled(false);
+        Action details = fDialog.getActionMap().get("viewTypeDetails");
+        if(details !=null)
+            details.actionPerformed(null);
 
-        fDialog.setVisible(true);
-        fDialog.setModal(true);
-        String filename = fDialog.getFile();
-        if (filename == null) {
-            System.out.println("You cancelled the choice");
-        } else {
-            String filePath = fDialog.getDirectory();
+        String filePath = "";
+        int rVal = fDialog.showSaveDialog(this);
+        if (rVal == JFileChooser.APPROVE_OPTION) {
+            filePath = fDialog.getCurrentDirectory().toString();
+            file = fDialog.getSelectedFile();
             PreferenceSetting.setFilterDir(filePath);
-            System.out.println("You chose " + filePath + "/" + filename);
-            String path = fDialog.getDirectory() + fDialog.getFile();
-            file = new File(path);
-
+            System.out.println("You chose " + file.getName());
             FilterConfigMgr.saveFilterConfig(file);
+        }
+        if (rVal == JFileChooser.CANCEL_OPTION) {
+            System.out.println("You cancelled the choice");
         }
     }
 
@@ -405,7 +377,7 @@ class LogViewerApp extends JFrame {
      * Open Log file
      */
     private void openFile() {
-        File[] files = chooseFile();
+        File[] files = chooseFile(false);
         if (files == null || files.length == 0) {
             System.out.println("You cancelled the choice");
         } else {
@@ -418,7 +390,7 @@ class LogViewerApp extends JFrame {
      * Merge Two Android Log file
      */
     private void mergeFile() {
-        File[] files = chooseFile();
+        File[] files = chooseFile(true);
         if (files == null || files.length <= 0) {
             System.out.println("You cancelled the choice");
         } else {
@@ -426,29 +398,34 @@ class LogViewerApp extends JFrame {
         }
     }
 
-    private File[] chooseFile() {
-        FileDialog fDialog = new FileDialog(this, "Load", FileDialog.LOAD);
-
-        fDialog.setFilenameFilter(new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return name.endsWith(".txt") || name.endsWith(".log");
-            }
-        });
-
+    private File[] chooseFile(boolean multileSel) {
         String logDirStr = PreferenceSetting.getLogDir();
 
-        File logDir = new File(logDirStr);
-        if (logDir.isDirectory() && logDir.canRead()) {
-            fDialog.setDirectory(logDirStr);
+        JFileChooser fDialog = new JFileChooser(logDirStr);
+        fDialog.setFileFilter(new FileNameExtensionFilter("Log File(*.txt, *.log)", "txt", "log"));
+        fDialog.setFileSelectionMode(JFileChooser.FILES_ONLY);
+        fDialog.setMultiSelectionEnabled(multileSel);
+        Action details = fDialog.getActionMap().get("viewTypeDetails");
+        if(details !=null)
+            details.actionPerformed(null);
+
+        String filePath = "";
+        File[] files = null;
+        int rVal = fDialog.showOpenDialog(this);
+        if (rVal == JFileChooser.APPROVE_OPTION) {
+            filePath = fDialog.getCurrentDirectory().toString();
+            if(multileSel)
+                files = fDialog.getSelectedFiles();
+            else {
+                files = new File[1];
+                files[0] = fDialog.getSelectedFile();
+            }
+            PreferenceSetting.setLogDir(filePath);
+        }
+        if (rVal == JFileChooser.CANCEL_OPTION) {
+            return null;
         }
 
-        fDialog.setMultipleMode(true);
-        fDialog.setVisible(true);
-        fDialog.setModal(true);
-        File[] files = fDialog.getFiles();
-        String filePath = fDialog.getDirectory();
-        PreferenceSetting.setLogDir(filePath);
         return files;
     }
 

@@ -14,6 +14,7 @@ task generateSources {
     outputs.dir file("${buildDir}/generated/")
     doFirst {
         def srcFile = new File("${buildDir}/generated/com/eric/org/BuildVersion.java")
+        srcFile.delete();
         srcFile.parentFile.mkdirs()
         srcFile.write("""
             package com.eric.org;

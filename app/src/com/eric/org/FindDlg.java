@@ -146,11 +146,6 @@ class FindDlg extends JDialog {
                                         .addComponent(caseCheckBox)))
                         .addComponent(prevButton))
         );
-
-
-
-        prevButton.addActionListener(prevListener);
-        nextButton.addActionListener(nextListener);
         getRootPane().setDefaultButton(nextButton);
 
         setTitle("Find");
@@ -165,7 +160,6 @@ class FindDlg extends JDialog {
                 size.height/2 - getHeight()/2);
 
         setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-
     }
 
     public static void main(String[] args) {

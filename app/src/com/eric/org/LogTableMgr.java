@@ -99,9 +99,7 @@ public class LogTableMgr {
         File logDir = new File(logDirStr);
 
         JFileChooser fileChooser = new JFileChooser();
-        if (logDir.isDirectory() && logDir.canRead()) {
-            fileChooser.setCurrentDirectory(logDir);
-        }
+        fileChooser.setCurrentDirectory(logDir);
         FileNameExtensionFilter filter = new FileNameExtensionFilter("TEXT FILES", "txt", "text");
         fileChooser.setFileFilter(filter);
         fileChooser.setDialogTitle("Specify a file to save");
@@ -178,9 +176,7 @@ public class LogTableMgr {
         File logDir = new File(logDirStr);
 
         JFileChooser fileChooser = new JFileChooser();
-        if (logDir.isDirectory() && logDir.canRead()) {
-            fileChooser.setCurrentDirectory(logDir);
-        }
+        fileChooser.setCurrentDirectory(logDir);
         FileNameExtensionFilter filter = new FileNameExtensionFilter("TEXT FILES", "txt", "text");
         fileChooser.setFileFilter(filter);
         fileChooser.setDialogTitle("Specify a file to save");
@@ -320,6 +316,9 @@ public class LogTableMgr {
             while ((s = br.readLine()) != null) {
                 publish(s);
                 readedLineCount++;
+                //Sleep to make sure UI can be updated in time for better UI expirence
+                if(readedLineCount%1000==0)
+                    Thread.sleep(10);
             }
             return model;
         }
@@ -395,8 +394,10 @@ public class LogTableMgr {
                 //If all file reach the end, break
                 boolean finishall = true;
                 for(int j=0; j<INDEX_MAX; j++) {
-                    if(!isFinished[j])
+                    if(!isFinished[j]) {
                         finishall = false;
+                        break;
+                    }
                 }
                 if(finishall)
                     break;

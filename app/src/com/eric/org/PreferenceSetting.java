@@ -1,4 +1,6 @@
 package com.eric.org;
+import javax.swing.*;
+import java.awt.*;
 import java.util.prefs.Preferences;
 
 public class PreferenceSetting {
@@ -12,21 +14,23 @@ public class PreferenceSetting {
     public static String getFilterDir() {
         String filterDirStr = prefs.get("filterDir", null);
         if (filterDirStr == null)
-            filterDirStr = "./";
+            filterDirStr = ".";
         return filterDirStr;
     }
     public static void setFilterDir(String filePath) {
-        prefs.put("filterDir", filePath);
+        if(filePath != null)
+            prefs.put("filterDir", filePath);
     }
 
     public static String getLogDir() {
         String logDirStr = prefs.get("logDir", null);
         if (logDirStr == null)
-            logDirStr = "./";
+            logDirStr = ".";
         return logDirStr;
     }
     public static void setLogDir(String filePath) {
-        prefs.put("logDir", filePath);
+        if(filePath != null)
+            prefs.put("logDir", filePath);
     }
 
     public static boolean getAutoCaptureLog() {
@@ -41,5 +45,10 @@ public class PreferenceSetting {
             prefs.put("autoCaptureLog", "true");
         else
             prefs.put("autoCaptureLog", "false");
+    }
+
+    public Image getAppIcon(){
+        Image img = new ImageIcon(LogViewerApp.class.getResource("icon.jpeg")).getImage();
+        return img;
     }
 }

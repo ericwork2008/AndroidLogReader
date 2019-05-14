@@ -189,10 +189,10 @@ public class FilterConfigMgr {
             StreamResult consoleResult =
                     new StreamResult(System.out);
             transformer.transform(source, consoleResult);
+            JOptionPane.showMessageDialog(null, "Saved filter successfully", "Save", JOptionPane.OK_OPTION);
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(null, "Save file error: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-
         }
     }
     private static void saveNode(com.eric.org.config.ConfigInfo parent, Node node) {
