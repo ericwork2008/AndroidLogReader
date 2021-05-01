@@ -1,3 +1,4 @@
+## Background of the project
 When I analysis Android adb log, I need a tool which can highlight or filter to show checkpoint
 text. The tools is created for this purpose.
 
@@ -15,13 +16,16 @@ Some code is referenced to them.
 6)http://alvinalexander.com/blog/post/jfc-swing/java-handle-drag-drop-events-mac-osx-dock-application-icon
 7)http://blue-walrus.com/2011/03/swing-filtered-tree-just-like-in-eclipse/
 
-
+## How to build
 It build on java version "1.7.0_79"
 
+```
+gradlew.bat build fatJar
+```
 
 
 
-$License
+##License
 
 This project contains the source code of http://jroller.com/santhosh
 
